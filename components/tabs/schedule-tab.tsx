@@ -139,8 +139,12 @@ export function ScheduleTab({
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="font-serif text-2xl text-foreground mb-2">RSVP</h2>
-        <p className="text-muted-foreground">Edit time &amp; location by tapping on it</p>
-        <p className="text-muted-foreground text-sm mt-1">Edit RSVP by writing your name again</p>
+        {meetings.length > 0 && (
+          <>
+            <p className="text-muted-foreground">Edit time &amp; location by tapping on it</p>
+            <p className="text-muted-foreground text-sm mt-1">Edit RSVP by writing your name again</p>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}
