@@ -29,6 +29,7 @@ interface ScheduleTabProps {
   onUpdateMeeting: (meetingId: string, updates: Partial<Omit<Meeting, "id" | "rsvps" | "book">>) => void
   prefillBook?: SuggestedBook | null
   onPrefillUsed?: () => void
+  onSuggestionScheduled?: (bookId: string) => void
 }
 
 export function ScheduleTab({ 
@@ -39,10 +40,12 @@ export function ScheduleTab({
   onDeleteMeeting,
   onUpdateMeeting,
   prefillBook,
-  onPrefillUsed
+  onPrefillUsed,
+  onSuggestionScheduled,
 }: ScheduleTabProps) {
   const [showForm, setShowForm] = useState(false)
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null)
+  const [prefillBookId, setPrefillBookId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     bookTitle: "",
     bookAuthor: "",
@@ -64,6 +67,7 @@ export function ScheduleTab({
         time: "",
         location: "",
       })
+      setPrefillBookId(prefillBook.id)
       setEditingMeetingId(null)
       setShowForm(true)
       onPrefillUsed?.()
@@ -96,6 +100,10 @@ export function ScheduleTab({
           time: timeValue,
           location: formData.location,
         })
+        if (prefillBookId) {
+          onSuggestionScheduled?.(prefillBookId)
+          setPrefillBookId(null)
+        }
       }
       setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
       setShowForm(false)

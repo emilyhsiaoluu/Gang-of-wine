@@ -296,6 +296,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
               onUpdateMeeting={handleUpdateMeeting}
               prefillBook={scheduleFormBook}
               onPrefillUsed={() => setScheduleFormBook(null)}
+              onSuggestionScheduled={handleDeleteSuggestion}
             />
           </TabsContent>
 
