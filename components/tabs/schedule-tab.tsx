@@ -46,6 +46,7 @@ export function ScheduleTab({
   const [formData, setFormData] = useState({
     bookTitle: "",
     bookAuthor: "",
+    bookCoverUrl: "",
     date: "",
     time: "",
     location: "",
@@ -58,6 +59,7 @@ export function ScheduleTab({
       setFormData({
         bookTitle: prefillBook.title,
         bookAuthor: prefillBook.author,
+        bookCoverUrl: prefillBook.coverUrl || "",
         date: "",
         time: "",
         location: "",
@@ -88,14 +90,14 @@ export function ScheduleTab({
             id: `book-${Date.now()}`,
             title: formData.bookTitle,
             author: formData.bookAuthor,
-            coverUrl: `https://covers.openlibrary.org/b/title/${encodeURIComponent(formData.bookTitle)}-M.jpg`,
+            coverUrl: formData.bookCoverUrl || `https://covers.openlibrary.org/b/title/${encodeURIComponent(formData.bookTitle)}-M.jpg`,
           },
           date: formData.date,
           time: timeValue,
           location: formData.location,
         })
       }
-      setFormData({ bookTitle: "", bookAuthor: "", date: "", time: "", location: "" })
+      setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
       setShowForm(false)
     }
   }
@@ -113,7 +115,7 @@ export function ScheduleTab({
   }
 
   const handleCancelForm = () => {
-    setFormData({ bookTitle: "", bookAuthor: "", date: "", time: "", location: "" })
+    setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
     setEditingMeetingId(null)
     setShowForm(false)
   }
