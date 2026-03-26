@@ -79,7 +79,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     </div>
                   </div>
                   {book.description && (
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
                       {book.description}
                     </p>
                   )}
@@ -105,7 +105,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                       className={`gap-2 ${voted ? 'bg-primary hover:bg-primary/90' : ''}`}
                     >
                       <Heart className={`h-4 w-4 ${voted ? 'fill-current' : ''}`} />
-                      {voted ? 'Voted' : 'Vote & Schedule'}
+                      {voted ? 'Voted' : 'Vote'}
                     </Button>
                     <Button
                       variant="outline"

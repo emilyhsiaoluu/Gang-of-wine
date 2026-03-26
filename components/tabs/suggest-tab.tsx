@@ -254,10 +254,12 @@ export function SuggestTab({ suggestions, onSuggest, onDelete }: SuggestTabProps
                 </div>
               )}
 
-              <div className="flex gap-3 pt-2 flex-wrap">
+              <div className="flex flex-col gap-3 pt-2">
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
+                  className="w-full h-12 text-base"
                   onClick={handleSearch}
                   disabled={!formData.title || !formData.author || isLoading}
                 >
@@ -276,6 +278,8 @@ export function SuggestTab({ suggestions, onSuggest, onDelete }: SuggestTabProps
 
                 <Button
                   type="button"
+                  size="lg"
+                  className="w-full h-12 text-base"
                   onClick={handleConfirmAdd}
                   disabled={!selectedBook || isLoading}
                 >
@@ -295,6 +299,8 @@ export function SuggestTab({ suggestions, onSuggest, onDelete }: SuggestTabProps
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
+                  className="w-full h-12 text-base"
                   onClick={() => {
                     setShowForm(false)
                     setSearchResults([])
@@ -351,7 +357,7 @@ export function SuggestTab({ suggestions, onSuggest, onDelete }: SuggestTabProps
                     </h4>
                     <p className="text-muted-foreground text-sm mb-2">by {book.author}</p>
                     {book.description && (
-                      <p className="text-sm text-foreground/80 mb-2 line-clamp-3">
+                      <p className="text-sm text-foreground/80 mb-2 line-clamp-5">
                         {book.description}
                       </p>
                     )}
