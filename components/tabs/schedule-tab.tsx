@@ -362,6 +362,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
                     size="sm"
                     variant={currentRsvp?.response === "yes" ? "default" : "outline"}
                     onClick={() => handleRSVP("yes")}
+                    disabled={!rsvpName.trim()}
                     className="h-9"
                   >
                     Yes
@@ -370,6 +371,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
                     size="sm"
                     variant={currentRsvp?.response === "maybe" ? "default" : "outline"}
                     onClick={() => handleRSVP("maybe")}
+                    disabled={!rsvpName.trim()}
                     className="h-9"
                   >
                     Maybe
@@ -378,6 +380,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
                     size="sm"
                     variant={currentRsvp?.response === "no" ? "default" : "outline"}
                     onClick={() => handleRSVP("no")}
+                    disabled={!rsvpName.trim()}
                     className="h-9"
                   >
                     No
