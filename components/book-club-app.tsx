@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScheduleTab } from "@/components/tabs/schedule-tab"
-import { SuggestTab } from "@/components/tabs/suggest-tab"
 import { VoteTab } from "@/components/tabs/vote-tab"
 import { ArchiveTab } from "@/components/tabs/archive-tab"
-import { Wine, BookOpen, Calendar, Lightbulb, Heart, Archive } from "lucide-react"
+import { Wine, BookOpen, Calendar, Heart, Archive } from "lucide-react"
 import type { Meeting, SuggestedBook, Vote } from "@/lib/types"
 import {
   addMeeting,
@@ -235,7 +234,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
             <Wine className="h-6 w-6 text-primary" />
             <BookOpen className="h-6 w-6 text-accent" />
             <span className="font-serif text-lg font-semibold text-foreground hidden sm:inline">
-              Wine Moms Book Club
+              Gang of Wine Moms Book Club
             </span>
           </div>
           <button
@@ -255,30 +254,23 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
           </div>
         )}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6 h-auto p-1 bg-muted">
-            <TabsTrigger 
-              value="schedule" 
+          <TabsList className="grid w-full grid-cols-3 mb-6 h-auto p-1 bg-muted">
+            <TabsTrigger
+              value="schedule"
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-card data-[state=active]:text-primary"
             >
               <Calendar className="h-5 w-5" />
               <span className="text-xs font-medium text-center leading-tight">RSVP</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="suggest" 
-              className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-card data-[state=active]:text-primary"
-            >
-              <Lightbulb className="h-5 w-5" />
-              <span className="text-xs font-medium">Suggest</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="vote" 
+            <TabsTrigger
+              value="vote"
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-card data-[state=active]:text-primary"
             >
               <Heart className="h-5 w-5" />
               <span className="text-xs font-medium">Vote</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="archive" 
+            <TabsTrigger
+              value="archive"
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-card data-[state=active]:text-primary"
             >
               <Archive className="h-5 w-5" />
@@ -300,21 +292,15 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
             />
           </TabsContent>
 
-          <TabsContent value="suggest" className="mt-0">
-            <SuggestTab 
-              suggestions={suggestions}
-              onSuggest={handleSuggestBook}
-              onDelete={handleDeleteSuggestion}
-            />
-          </TabsContent>
-
           <TabsContent value="vote" className="mt-0">
-            <VoteTab 
+            <VoteTab
               suggestions={suggestions}
               votes={votes}
               userName={userName}
               onVote={handleVote}
               onScheduleMeeting={handleScheduleFromVote}
+              onSuggest={handleSuggestBook}
+              onDelete={handleDeleteSuggestion}
             />
           </TabsContent>
 
