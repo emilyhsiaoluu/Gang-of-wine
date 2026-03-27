@@ -140,10 +140,7 @@ export function ScheduleTab({
       <div className="text-center mb-6">
         <h2 className="font-serif text-2xl text-foreground mb-2">RSVP</h2>
         {meetings.length > 0 && (
-          <>
-            <p className="text-muted-foreground">Edit time &amp; location by tapping on it</p>
-            <p className="text-muted-foreground text-sm mt-1">Edit RSVP by writing your name again</p>
-          </>
+          <p className="text-muted-foreground">Edit time &amp; location by tapping on it</p>
         )}
       </div>
 
@@ -394,14 +391,18 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
                 </div>
               </div>
               {meeting.rsvps.length > 0 && (
-                <div className="mt-3 text-sm text-muted-foreground">
-                  <span className="font-medium">RSVPs: </span>
-                  {meeting.rsvps.map((rsvp, i) => (
-                    <span key={rsvp.name}>
-                      {rsvp.name} ({rsvp.response})
-                      {i < meeting.rsvps.length - 1 ? ", " : ""}
-                    </span>
-                  ))}
+                <div className="mt-3 text-sm space-y-1">
+                  {(["yes", "maybe", "no"] as const).map((response) => {
+                    const names = meeting.rsvps.filter(r => r.response === response).map(r => r.name)
+                    if (names.length === 0) return null
+                    const label = response === "yes" ? "Yes" : response === "maybe" ? "Maybe" : "No"
+                    return (
+                      <div key={response} className="text-muted-foreground">
+                        <span className="font-medium text-foreground">{label}: </span>
+                        {names.join(", ")}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>
