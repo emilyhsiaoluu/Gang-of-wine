@@ -274,7 +274,9 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
     if (dateStr.includes(" ")) {
       return dateStr
     }
-    const date = new Date(dateStr)
+    // Parse as local time (not UTC) to avoid date shifting for US timezones
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   }
 
