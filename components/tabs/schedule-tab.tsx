@@ -114,6 +114,7 @@ export function ScheduleTab({
     setFormData({
       bookTitle: meeting.book.title,
       bookAuthor: meeting.book.author,
+      bookCoverUrl: meeting.book.coverUrl || "",
       date: meeting.date,
       time: meeting.time === "TBD" ? "TBD" : meeting.time,
       location: meeting.location,
@@ -291,7 +292,6 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
   const handleRSVP = (response: "yes" | "no" | "maybe") => {
     onRSVP(meeting.id, response, rsvpName)
-    setRsvpName("") // Reset name field after RSVP
   }
 
   return (
