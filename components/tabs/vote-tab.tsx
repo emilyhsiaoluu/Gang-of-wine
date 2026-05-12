@@ -39,39 +39,37 @@ type GoogleBookMatch = {
 }
 
 async function searchGoogleBooks(title: string, author: string): Promise<GoogleBookMatch[]> {
-  try {
-    const query = encodeURIComponent(`${title} ${author}`.trim())
-    const response = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`,
-    )
-    const data = await response.json()
-    const items = (data.items ?? []) as any[]
-    return items.slice(0, 5).map((item) => {
-      const volumeInfo = item.volumeInfo ?? {}
-      const descriptionRaw: string | undefined = volumeInfo.description
-      const shortDesc =
-        descriptionRaw && descriptionRaw.length > 200
-          ? descriptionRaw.substring(0, 200).trim() + "..."
-          : descriptionRaw
-      const publishedDate: string | undefined = volumeInfo.publishedDate
-      const publishedYear =
-        typeof publishedDate === "string" ? publishedDate.slice(0, 4) : undefined
-      const coverUrl: string | undefined = volumeInfo.imageLinks?.thumbnail
-      const authors: string[] | undefined = volumeInfo.authors
-      const firstAuthor = (authors && authors.length > 0 ? authors[0] : author) ?? author
-      return {
-        id: item.id ?? `${volumeInfo.title ?? title}-${firstAuthor}`,
-        title: volumeInfo.title ?? title,
-        author: firstAuthor,
-        publishedYear,
-        description: shortDesc,
-        coverUrl,
-      }
-    })
-  } catch (error) {
-    console.error("Failed to search Google Books:", error)
-    return []
+  const query = encodeURIComponent(`${title} ${author}`.trim())
+  const response = await fetch(
+    `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`,
+  )
+  if (!response.ok) {
+    throw new Error(`Google Books returned ${response.status} ${response.statusText}`)
   }
+  const data = await response.json()
+  const items = (data.items ?? []) as any[]
+  return items.slice(0, 5).map((item) => {
+    const volumeInfo = item.volumeInfo ?? {}
+    const descriptionRaw: string | undefined = volumeInfo.description
+    const shortDesc =
+      descriptionRaw && descriptionRaw.length > 200
+        ? descriptionRaw.substring(0, 200).trim() + "..."
+        : descriptionRaw
+    const publishedDate: string | undefined = volumeInfo.publishedDate
+    const publishedYear =
+      typeof publishedDate === "string" ? publishedDate.slice(0, 4) : undefined
+    const coverUrl: string | undefined = volumeInfo.imageLinks?.thumbnail
+    const authors: string[] | undefined = volumeInfo.authors
+    const firstAuthor = (authors && authors.length > 0 ? authors[0] : author) ?? author
+    return {
+      id: item.id ?? `${volumeInfo.title ?? title}-${firstAuthor}`,
+      title: volumeInfo.title ?? title,
+      author: firstAuthor,
+      publishedYear,
+      description: shortDesc,
+      coverUrl,
+    }
+  })
 }
 
 export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeeting, onSuggest, onDelete }: VoteTabProps) {
@@ -81,6 +79,15 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const [searchResults, setSearchResults] = useState<GoogleBookMatch[]>([])
   const [selectedBook, setSelectedBook] = useState<GoogleBookMatch | null>(null)
   const [bookToDelete, setBookToDelete] = useState<string | null>(null)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [hasSearched, setHasSearched] = useState(false)
+
+  const resetSearchState = () => {
+    setSearchResults([])
+    setSelectedBook(null)
+    setSearchError(null)
+    setHasSearched(false)
+  }
 
   const getVoteCount = (bookId: string) => votes.filter(v => v.bookId === bookId).length
   const getVoterNames = (bookId: string) => votes.filter(v => v.bookId === bookId).map(v => v.voterName)
@@ -93,10 +100,20 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const handleSearch = async () => {
     if (!formData.title || !formData.author) return
     setIsLoading(true)
+    setSearchError(null)
+    setSelectedBook(null)
     try {
       const results = await searchGoogleBooks(formData.title, formData.author)
       setSearchResults(results)
-      setSelectedBook(null)
+      setHasSearched(true)
+    } catch (error) {
+      console.error("Failed to search Google Books:", error)
+      const detail = error instanceof Error ? error.message : String(error)
+      setSearchError(
+        `Couldn't reach Google Books (${detail}). Check your network or any ad/privacy blockers, then try again.`,
+      )
+      setSearchResults([])
+      setHasSearched(true)
     } finally {
       setIsLoading(false)
     }
@@ -158,8 +175,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
           className="w-full h-16 text-lg"
           onClick={() => {
             setFormData({ title: "", author: "" })
-            setSearchResults([])
-            setSelectedBook(null)
+            resetSearchState()
             setShowForm(true)
           }}
         >
@@ -176,8 +192,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                 size="icon"
                 onClick={() => {
                   setShowForm(false)
-                  setSearchResults([])
-                  setSelectedBook(null)
+                  resetSearchState()
                 }}
                 className="h-8 w-8"
               >
@@ -193,8 +208,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                   value={formData.title}
                   onChange={(e) => {
                     setFormData({ ...formData, title: e.target.value })
-                    setSearchResults([])
-                    setSelectedBook(null)
+                    resetSearchState()
                   }}
                 />
               </div>
@@ -206,11 +220,23 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                   value={formData.author}
                   onChange={(e) => {
                     setFormData({ ...formData, author: e.target.value })
-                    setSearchResults([])
-                    setSelectedBook(null)
+                    resetSearchState()
                   }}
                 />
               </div>
+
+              {searchError && (
+                <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {searchError}
+                </div>
+              )}
+
+              {hasSearched && !searchError && searchResults.length === 0 && (
+                <div className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                  No matches found for &quot;{formData.title}&quot; by &quot;{formData.author}&quot;.
+                  Double-check the spelling, or try fewer words.
+                </div>
+              )}
 
               {searchResults.length > 0 && (
                 <div className="space-y-2 pt-2">
@@ -291,8 +317,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                   className="w-full h-12 text-base"
                   onClick={() => {
                     setShowForm(false)
-                    setSearchResults([])
-                    setSelectedBook(null)
+                    resetSearchState()
                   }}
                   disabled={isLoading}
                 >

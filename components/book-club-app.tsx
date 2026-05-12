@@ -46,19 +46,24 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
     setVotes(data.votes)
   }, [])
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        await refreshData()
-      } catch (error) {
-        console.error("Failed loading app data:", error)
-        setErrorMessage("Could not load book club data from Supabase.")
-      } finally {
-        setIsLoading(false)
-      }
+  const loadData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      await refreshData()
+    } catch (error) {
+      console.error("Failed loading app data:", error)
+      const detail = error instanceof Error ? error.message : String(error)
+      // Supabase returns "Failed to fetch" on a paused project, and "Invalid API key"
+      // / "JWT" errors when env vars are wrong. Surface the raw message so it's clear.
+      setErrorMessage(`Could not load book club data from Supabase: ${detail}`)
+    } finally {
+      setIsLoading(false)
     }
-    load()
   }, [refreshData])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   // Keep schedule/archive split accurate when the day changes (midnight).
   useEffect(() => {
@@ -249,8 +254,19 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         {errorMessage && (
-          <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {errorMessage}
+          <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-medium">{errorMessage}</p>
+              <p className="text-xs text-red-600">
+                If the Supabase project is paused, restore it at supabase.com/dashboard, then retry.
+              </p>
+            </div>
+            <button
+              onClick={loadData}
+              className="shrink-0 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+            >
+              Retry
+            </button>
           </div>
         )}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
