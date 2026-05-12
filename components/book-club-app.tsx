@@ -52,9 +52,18 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
       await refreshData()
     } catch (error) {
       console.error("Failed loading app data:", error)
-      const detail = error instanceof Error ? error.message : String(error)
-      // Supabase returns "Failed to fetch" on a paused project, and "Invalid API key"
-      // / "JWT" errors when env vars are wrong. Surface the raw message so it's clear.
+      // Supabase's PostgrestError is a plain object with .message/.details/.hint/.code,
+      // not an Error instance — extract those fields explicitly so we don't render "[object Object]".
+      const detail = (() => {
+        if (error instanceof Error) return error.message
+        if (error && typeof error === "object") {
+          const e = error as { message?: string; details?: string; hint?: string; code?: string }
+          const parts = [e.message, e.details, e.hint, e.code].filter(Boolean)
+          if (parts.length) return parts.join(" — ")
+          try { return JSON.stringify(error) } catch { return String(error) }
+        }
+        return String(error)
+      })()
       setErrorMessage(`Could not load book club data from Supabase: ${detail}`)
     } finally {
       setIsLoading(false)
