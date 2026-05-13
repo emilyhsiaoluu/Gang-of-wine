@@ -29,7 +29,7 @@ interface VoteTabProps {
   onDelete: (bookId: string) => void
 }
 
-type GoogleBookMatch = {
+type BookMatch = {
   id: string
   title: string
   author: string
@@ -38,35 +38,33 @@ type GoogleBookMatch = {
   coverUrl?: string
 }
 
-async function searchGoogleBooks(title: string, author: string): Promise<GoogleBookMatch[]> {
-  const query = encodeURIComponent(`${title} ${author}`.trim())
-  const response = await fetch(
-    `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`,
-  )
+async function searchBooks(title: string, author: string): Promise<BookMatch[]> {
+  const params = new URLSearchParams({
+    title: title.trim(),
+    author: author.trim(),
+    limit: "5",
+  })
+  const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`)
   if (!response.ok) {
-    throw new Error(`Google Books returned ${response.status} ${response.statusText}`)
+    throw new Error(`Open Library returned ${response.status} ${response.statusText}`)
   }
   const data = await response.json()
-  const items = (data.items ?? []) as any[]
-  return items.slice(0, 5).map((item) => {
-    const volumeInfo = item.volumeInfo ?? {}
-    const descriptionRaw: string | undefined = volumeInfo.description
-    const shortDesc =
-      descriptionRaw && descriptionRaw.length > 200
-        ? descriptionRaw.substring(0, 200).trim() + "..."
-        : descriptionRaw
-    const publishedDate: string | undefined = volumeInfo.publishedDate
-    const publishedYear =
-      typeof publishedDate === "string" ? publishedDate.slice(0, 4) : undefined
-    const coverUrl: string | undefined = volumeInfo.imageLinks?.thumbnail
-    const authors: string[] | undefined = volumeInfo.authors
-    const firstAuthor = (authors && authors.length > 0 ? authors[0] : author) ?? author
+  const docs = (data.docs ?? []) as any[]
+  return docs.slice(0, 5).map((doc) => {
+    const firstAuthor =
+      Array.isArray(doc.author_name) && doc.author_name.length > 0 ? doc.author_name[0] : author
+    const year =
+      typeof doc.first_publish_year === "number" ? String(doc.first_publish_year) : undefined
+    const coverUrl =
+      typeof doc.cover_i === "number"
+        ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+        : undefined
+    const id = typeof doc.key === "string" ? doc.key : `${doc.title}-${firstAuthor}`
     return {
-      id: item.id ?? `${volumeInfo.title ?? title}-${firstAuthor}`,
-      title: volumeInfo.title ?? title,
+      id,
+      title: typeof doc.title === "string" ? doc.title : title,
       author: firstAuthor,
-      publishedYear,
-      description: shortDesc,
+      publishedYear: year,
       coverUrl,
     }
   })
@@ -76,8 +74,8 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const [showForm, setShowForm] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({ title: "", author: "" })
-  const [searchResults, setSearchResults] = useState<GoogleBookMatch[]>([])
-  const [selectedBook, setSelectedBook] = useState<GoogleBookMatch | null>(null)
+  const [searchResults, setSearchResults] = useState<BookMatch[]>([])
+  const [selectedBook, setSelectedBook] = useState<BookMatch | null>(null)
   const [bookToDelete, setBookToDelete] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
@@ -103,14 +101,14 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
     setSearchError(null)
     setSelectedBook(null)
     try {
-      const results = await searchGoogleBooks(formData.title, formData.author)
+      const results = await searchBooks(formData.title, formData.author)
       setSearchResults(results)
       setHasSearched(true)
     } catch (error) {
-      console.error("Failed to search Google Books:", error)
+      console.error("Failed to search Open Library:", error)
       const detail = error instanceof Error ? error.message : String(error)
       setSearchError(
-        `Couldn't reach Google Books (${detail}). Check your network or any ad/privacy blockers, then try again.`,
+        `Couldn't reach Open Library (${detail}). Check your network or any ad/privacy blockers, then try again.`,
       )
       setSearchResults([])
       setHasSearched(true)
