@@ -7,10 +7,11 @@ import { Wine, BookOpen } from "lucide-react"
 
 interface WelcomeScreenProps {
   onJoin: (name: string) => void
+  defaultName?: string
 }
 
-export function WelcomeScreen({ onJoin }: WelcomeScreenProps) {
-  const [name, setName] = useState("")
+export function WelcomeScreen({ onJoin, defaultName = "" }: WelcomeScreenProps) {
+  const [name, setName] = useState(defaultName)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
