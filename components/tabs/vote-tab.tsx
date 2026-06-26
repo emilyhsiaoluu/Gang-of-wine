@@ -39,11 +39,9 @@ type BookMatch = {
 }
 
 async function searchBooks(title: string, author: string): Promise<BookMatch[]> {
-  const params = new URLSearchParams({
-    title: title.trim(),
-    author: author.trim(),
-    limit: "5",
-  })
+  const params = new URLSearchParams({ limit: "5" })
+  if (title.trim()) params.set("title", title.trim())
+  if (author.trim()) params.set("author", author.trim())
   const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`)
   if (!response.ok) {
     throw new Error(`Open Library returned ${response.status} ${response.statusText}`)
@@ -91,12 +89,16 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const getVoterNames = (bookId: string) => votes.filter(v => v.bookId === bookId).map(v => v.voterName)
   const hasVoted = (bookId: string) => votes.some(v => v.bookId === bookId && v.voterName === userName)
 
-  const sortedSuggestions = [...suggestions].sort((a, b) => getVoteCount(b.id) - getVoteCount(a.id))
+  const sortedSuggestions = [...suggestions].sort((a, b) => {
+    const voteDiff = getVoteCount(b.id) - getVoteCount(a.id)
+    if (voteDiff !== 0) return voteDiff
+    return (b.createdAt ?? "") > (a.createdAt ?? "") ? 1 : -1
+  })
   const leadingBookId = sortedSuggestions[0]?.id
   const maxVotes = getVoteCount(leadingBookId)
 
   const handleSearch = async () => {
-    if (!formData.title || !formData.author) return
+    if (!formData.title && !formData.author) return
     setIsLoading(true)
     setSearchError(null)
     setSelectedBook(null)
@@ -231,8 +233,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
 
               {hasSearched && !searchError && searchResults.length === 0 && (
                 <div className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                  No matches found for &quot;{formData.title}&quot; by &quot;{formData.author}&quot;.
-                  Double-check the spelling, or try fewer words.
+                  No matches found. Double-check the spelling, or try fewer words.
                 </div>
               )}
 
@@ -284,7 +285,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                   size="lg"
                   className="w-full h-12 text-base"
                   onClick={handleSearch}
-                  disabled={!formData.title || !formData.author || isLoading}
+                  disabled={(!formData.title && !formData.author) || isLoading}
                 >
                   {isLoading ? (
                     <>

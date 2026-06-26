@@ -25,6 +25,7 @@ export interface Meeting {
 
 export interface SuggestedBook extends Book {
   suggestedBy: string
+  createdAt?: string
 }
 
 export interface Vote {
