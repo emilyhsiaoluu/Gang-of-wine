@@ -297,7 +297,8 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
   const handleShare = async () => {
     const title = `Book Club: ${meeting.book.title}`
-    const text = `Reminder! Book club is coming up 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)}\n⏰ ${formatTime(meeting.time)}\n📍 ${meeting.location}\n\nCan't wait to see you there!`
+    const appUrl = window.location.origin
+    const text = `Reminder! Book club is coming up 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)}\n⏰ ${formatTime(meeting.time)}\n📍 ${meeting.location}\n\n${appUrl}`
 
     if (!navigator.share) {
       await navigator.clipboard.writeText(text).catch(() => {})
