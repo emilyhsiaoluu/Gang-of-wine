@@ -10,6 +10,7 @@ type SuggestionRow = {
   description: string | null
   cover_url: string | null
   suggested_by: string
+  created_at: string
 }
 
 type VoteRow = {
@@ -48,6 +49,7 @@ function mapSuggestion(row: SuggestionRow): SuggestedBook {
     description: row.description ?? undefined,
     coverUrl: row.cover_url ?? undefined,
     suggestedBy: row.suggested_by,
+    createdAt: row.created_at,
   }
 }
 

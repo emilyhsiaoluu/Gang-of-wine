@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Clock, Calendar, X } from "lucide-react"
+import { MapPin, Clock, Calendar, X, Share2 } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import type { Meeting, SuggestedBook } from "@/lib/types"
 import { TimePicker } from "@/components/time-picker"
@@ -265,6 +265,7 @@ interface MeetingCardProps {
 
 function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCardProps) {
   const [rsvpName, setRsvpName] = useState(userName)
+  const [shareLabel, setShareLabel] = useState("Share")
   const currentRsvp = meeting.rsvps.find(r => r.name === rsvpName)
 
   const formatDate = (dateStr: string) => {
@@ -292,6 +293,39 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
   const handleRSVP = (response: "yes" | "no" | "maybe") => {
     onRSVP(meeting.id, response, rsvpName)
+  }
+
+  const handleShare = async () => {
+    const title = `Book Club: ${meeting.book.title}`
+    const appUrl = window.location.origin
+    const text = `Reminder! Book club is coming up 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)}\n⏰ ${formatTime(meeting.time)}\n📍 ${meeting.location}\n\n${appUrl}`
+
+    if (!navigator.share) {
+      await navigator.clipboard.writeText(text).catch(() => {})
+      setShareLabel("Copied!")
+      setTimeout(() => setShareLabel("Share"), 2000)
+      return
+    }
+
+    try {
+      const coverUrl = meeting.book.coverUrl
+      if (coverUrl) {
+        const res = await fetch(coverUrl).catch(() => null)
+        if (res?.ok) {
+          const blob = await res.blob()
+          const file = new File([blob], "book-cover.jpg", { type: blob.type || "image/jpeg" })
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ files: [file], title, text })
+            return
+          }
+        }
+      }
+      await navigator.share({ title, text })
+    } catch (err) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Share failed:", err)
+      }
+    }
   }
 
   return (
@@ -348,6 +382,19 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
                 <MapPin className="h-4 w-4" />
                 {meeting.location}
               </button>
+            </div>
+
+            {/* Share Button */}
+            <div className="mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShare}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <Share2 className="h-4 w-4" />
+                {shareLabel}
+              </Button>
             </div>
 
             {/* RSVP Section */}
