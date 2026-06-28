@@ -89,13 +89,18 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const getVoterNames = (bookId: string) => votes.filter(v => v.bookId === bookId).map(v => v.voterName)
   const hasVoted = (bookId: string) => votes.some(v => v.bookId === bookId && v.voterName === userName)
 
+  const maxVotes = suggestions.length > 0 ? Math.max(...suggestions.map(s => getVoteCount(s.id))) : 0
+
   const sortedSuggestions = [...suggestions].sort((a, b) => {
-    const voteDiff = getVoteCount(b.id) - getVoteCount(a.id)
-    if (voteDiff !== 0) return voteDiff
+    const aVotes = getVoteCount(a.id)
+    const bVotes = getVoteCount(b.id)
+    // Book(s) with the most votes stay at top
+    if (aVotes === maxVotes && bVotes !== maxVotes) return -1
+    if (bVotes === maxVotes && aVotes !== maxVotes) return 1
+    // Everything else: most recently added first
     return (b.createdAt ?? "") > (a.createdAt ?? "") ? 1 : -1
   })
-  const leadingBookId = sortedSuggestions[0]?.id
-  const maxVotes = getVoteCount(leadingBookId)
+  const leadingBookId = maxVotes > 0 ? sortedSuggestions[0]?.id : undefined
 
   const handleSearch = async () => {
     if (!formData.title && !formData.author) return
