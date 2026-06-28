@@ -12,25 +12,54 @@ interface BookDetailDialogProps {
   coverUrl?: string
 }
 
+async function searchOpenLibrary(query: URLSearchParams): Promise<{ key?: string; firstSentence?: string } | null> {
+  const res = await fetch(`https://openlibrary.org/search.json?${query}`)
+  if (!res.ok) return null
+  const data = await res.json()
+  const doc = data.docs?.[0]
+  if (!doc) return null
+  const fs = doc.first_sentence
+  const firstSentence = Array.isArray(fs) ? fs[0] : typeof fs === "string" ? fs : undefined
+  return { key: doc.key ?? undefined, firstSentence }
+}
+
+async function fetchWorksDescription(key: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://openlibrary.org${key}.json`)
+    if (!res.ok) return null
+    const works = await res.json()
+    const desc = works.description
+    if (typeof desc === "string" && desc.trim()) return desc.trim()
+    if (typeof desc?.value === "string" && desc.value.trim()) return desc.value.trim()
+  } catch { /* ignore */ }
+  return null
+}
+
 async function fetchBookDescription(title: string, author: string): Promise<string | null> {
   try {
-    const params = new URLSearchParams({ title: title.trim(), author: author.trim(), limit: "1" })
-    const res = await fetch(`https://openlibrary.org/search.json?${params}`)
-    if (!res.ok) return null
-    const data = await res.json()
-    const doc = data.docs?.[0]
-    if (!doc?.key) return null
+    // 1. Search with title + author
+    let result = await searchOpenLibrary(
+      new URLSearchParams({ title: title.trim(), author: author.trim(), limit: "1" })
+    )
 
-    const worksRes = await fetch(`https://openlibrary.org${doc.key}.json`)
-    if (!worksRes.ok) return null
-    const works = await worksRes.json()
+    // 2. If no result, try title only (some authors have name-format mismatches)
+    if (!result) {
+      result = await searchOpenLibrary(
+        new URLSearchParams({ title: title.trim(), limit: "1" })
+      )
+    }
 
-    const desc = works.description
-    if (typeof desc === "string") return desc
-    if (desc?.value) return desc.value
-  } catch {
-    // network error — just show no description
-  }
+    if (!result) return null
+
+    // 3. Try Works endpoint for a proper description
+    if (result.key) {
+      const desc = await fetchWorksDescription(result.key)
+      if (desc) return desc
+    }
+
+    // 4. Fall back to first_sentence from search results
+    if (result.firstSentence) return result.firstSentence
+  } catch { /* network error */ }
   return null
 }
 
