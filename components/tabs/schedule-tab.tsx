@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { MapPin, Clock, Calendar, X, Share2 } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
+import { BookDetailDialog } from "@/components/book-detail-dialog"
 import type { Meeting, SuggestedBook } from "@/lib/types"
 import { TimePicker } from "@/components/time-picker"
 
@@ -266,6 +267,7 @@ interface MeetingCardProps {
 function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCardProps) {
   const [rsvpName, setRsvpName] = useState(userName)
   const [shareLabel, setShareLabel] = useState("Share")
+  const [detailOpen, setDetailOpen] = useState(false)
   const currentRsvp = meeting.rsvps.find(r => r.name === rsvpName)
 
   const formatDate = (dateStr: string) => {
@@ -321,6 +323,14 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
   }
 
   return (
+    <>
+      <BookDetailDialog
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        title={meeting.book.title}
+        author={meeting.book.author}
+        coverUrl={meeting.book.coverUrl}
+      />
     <Card className="overflow-hidden relative">
       {/* Delete Button */}
       <Button
@@ -336,11 +346,12 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
         <div className="flex flex-col sm:flex-row">
           {/* Book Cover */}
           <div className="sm:w-32 flex-shrink-0 p-4 flex justify-center sm:justify-start">
-            <BookCover 
+            <BookCover
               title={meeting.book.title}
               author={meeting.book.author}
               coverUrl={meeting.book.coverUrl}
-              size="md" 
+              size="md"
+              onClick={() => setDetailOpen(true)}
             />
           </div>
 
@@ -449,5 +460,6 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
         </div>
       </CardContent>
     </Card>
+    </>
   )
 }

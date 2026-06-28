@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
+import { BookDetailDialog } from "@/components/book-detail-dialog"
 import type { SuggestedBook, Vote } from "@/lib/types"
 
 interface VoteTabProps {
@@ -77,6 +78,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const [bookToDelete, setBookToDelete] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string } | null>(null)
 
   const resetSearchState = () => {
     setSearchResults([])
@@ -149,6 +151,14 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
 
   return (
     <div className="space-y-4">
+      <BookDetailDialog
+        open={!!detailBook}
+        onClose={() => setDetailBook(null)}
+        title={detailBook?.title ?? ""}
+        author={detailBook?.author ?? ""}
+        coverUrl={detailBook?.coverUrl}
+      />
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!bookToDelete} onOpenChange={(open) => !open && setBookToDelete(null)}>
         <AlertDialogContent>
@@ -369,6 +379,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                       author={book.author}
                       coverUrl={book.coverUrl}
                       size="md"
+                      onClick={() => setDetailBook({ title: book.title, author: book.author, coverUrl: book.coverUrl })}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-2">

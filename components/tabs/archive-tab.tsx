@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Archive, Star, Calendar, MapPin, User, X } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
+import { BookDetailDialog } from "@/components/book-detail-dialog"
 import type { Meeting } from "@/lib/types"
 import { useState } from "react"
 
@@ -92,6 +93,7 @@ function formatArchiveDate(dateStr: string) {
 
 export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null)
+  const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string } | null>(null)
 
   const handleConfirmDelete = () => {
     if (meetingToDelete) {
@@ -136,6 +138,14 @@ export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
         <p className="text-muted-foreground">A look back at our literary journey together</p>
       </div>
 
+      <BookDetailDialog
+        open={!!detailBook}
+        onClose={() => setDetailBook(null)}
+        title={detailBook?.title ?? ""}
+        author={detailBook?.author ?? ""}
+        coverUrl={detailBook?.coverUrl}
+      />
+
       <div className="grid gap-4">
         {archive.map((meeting) => (
           <Card key={meeting.id} className="overflow-hidden relative">
@@ -151,11 +161,12 @@ export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
             <CardContent className="p-4">
               <div className="flex gap-4">
                 <div>
-                  <BookCover 
-                    title={meeting.book.title} 
-                    author={meeting.book.author} 
+                  <BookCover
+                    title={meeting.book.title}
+                    author={meeting.book.author}
                     coverUrl={meeting.book.coverUrl}
                     size="lg"
+                    onClick={() => setDetailBook({ title: meeting.book.title, author: meeting.book.author, coverUrl: meeting.book.coverUrl })}
                   />
                 </div>
                 <div className="flex-1 min-w-0">
