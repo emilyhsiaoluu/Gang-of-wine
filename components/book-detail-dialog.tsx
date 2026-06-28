@@ -59,7 +59,7 @@ export function BookDetailDialog({ open, onClose, title, author, coverUrl }: Boo
         <div className="flex gap-4 items-start">
           {coverUrl && (
             <img
-              src={coverUrl}
+              src={coverUrl.replace(/-[SM]\.jpg$/, '-L.jpg')}
               alt={`${title} cover`}
               className="w-24 h-36 object-cover rounded-lg shadow-md border border-border/50 flex-shrink-0"
             />
