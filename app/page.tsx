@@ -1,35 +1,18 @@
-"use client"
+import type { Metadata } from "next"
+import { ClientPage } from "@/components/client-page"
 
-import { useState } from "react"
-import { WelcomeScreen } from "@/components/welcome-screen"
-import { BookClubApp } from "@/components/book-club-app"
+type Props = { searchParams: Promise<{ ogImage?: string }> }
 
-const STORAGE_KEY = "gang-of-wine-username"
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { ogImage } = await searchParams
+  if (!ogImage) return {}
+  const decoded = decodeURIComponent(ogImage)
+  return {
+    openGraph: { images: [{ url: decoded, width: 200, height: 300, alt: "Book cover" }] },
+    twitter: { images: [decoded] },
+  }
+}
 
 export default function Home() {
-  const [userName, setUserName] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null
-    return localStorage.getItem(STORAGE_KEY)
-  })
-
-  const handleJoin = (name: string) => {
-    localStorage.setItem(STORAGE_KEY, name)
-    setUserName(name)
-  }
-
-  const handleEditName = () => {
-    setUserName(null)
-  }
-
-  if (!userName) {
-    const savedName = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) ?? "" : ""
-    return <WelcomeScreen onJoin={handleJoin} defaultName={savedName} />
-  }
-
-  return (
-    <BookClubApp
-      userName={userName}
-      onEditName={handleEditName}
-    />
-  )
+  return <ClientPage />
 }

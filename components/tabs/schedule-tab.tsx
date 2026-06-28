@@ -297,30 +297,22 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
   const handleShare = async () => {
     const title = `Book Club: ${meeting.book.title}`
-    const appUrl = window.location.origin
-    const text = `Reminder! Book club is coming up 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)}\n⏰ ${formatTime(meeting.time)}\n📍 ${meeting.location}\n\n${appUrl}`
+    const text = `Don't forget — book club is coming up! 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)} at ${formatTime(meeting.time)}\n📍 ${meeting.location}\n\nTap to RSVP 👇`
+
+    const shareUrl = new URL(window.location.origin)
+    if (meeting.book.coverUrl) {
+      shareUrl.searchParams.set("ogImage", meeting.book.coverUrl)
+    }
 
     if (!navigator.share) {
-      await navigator.clipboard.writeText(text).catch(() => {})
+      await navigator.clipboard.writeText(`${text}\n${shareUrl}`).catch(() => {})
       setShareLabel("Copied!")
       setTimeout(() => setShareLabel("Share"), 2000)
       return
     }
 
     try {
-      const coverUrl = meeting.book.coverUrl
-      if (coverUrl) {
-        const res = await fetch(coverUrl).catch(() => null)
-        if (res?.ok) {
-          const blob = await res.blob()
-          const file = new File([blob], "book-cover.jpg", { type: blob.type || "image/jpeg" })
-          if (navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], title, text })
-            return
-          }
-        }
-      }
-      await navigator.share({ title, text })
+      await navigator.share({ title, text, url: shareUrl.toString() })
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {
         console.error("Share failed:", err)
@@ -387,12 +379,12 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
             {/* Share Button */}
             <div className="mb-4">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={handleShare}
-                className="gap-2 text-muted-foreground hover:text-foreground"
+                className="gap-1.5 h-8 px-2 text-xs text-primary/60 hover:text-primary hover:bg-primary/10"
               >
-                <Share2 className="h-4 w-4" />
+                <Share2 className="h-3.5 w-3.5" />
                 {shareLabel}
               </Button>
             </div>
