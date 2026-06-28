@@ -299,7 +299,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
   const handleShare = async () => {
     const title = `Book Club: ${meeting.book.title}`
-    const text = `Don't forget — book club is coming up! 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)} at ${formatTime(meeting.time)}\n📍 ${meeting.location}\n\nTap to RSVP 👇`
+    const text = `Don't forget — book club is coming up! Tap to RSVP. 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)} at ${formatTime(meeting.time)}\n📍 ${meeting.location}`
 
     const shareUrl = new URL(window.location.origin)
     if (meeting.book.coverUrl) {
