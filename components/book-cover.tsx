@@ -8,10 +8,12 @@ interface BookCoverProps {
   author: string
   coverUrl?: string
   size?: "sm" | "md" | "lg"
+  onClick?: () => void
 }
 
-export function BookCover({ title, author, coverUrl, size = "md" }: BookCoverProps) {
+export function BookCover({ title, author, coverUrl, size = "md", onClick }: BookCoverProps) {
   const [imageError, setImageError] = useState(false)
+  const clickProps = onClick ? { onClick, role: "button" as const, tabIndex: 0, className: "cursor-pointer" } : {}
 
   const sizeClasses = {
     sm: "w-16 h-24",
@@ -34,7 +36,8 @@ export function BookCover({ title, author, coverUrl, size = "md" }: BookCoverPro
   if (!coverUrl || imageError) {
     return (
       <div
-        className={`${sizeClasses[size]} rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-border flex flex-col items-center justify-center p-2 shadow-sm`}
+        {...clickProps}
+        className={`${sizeClasses[size]} rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-border flex flex-col items-center justify-center p-2 shadow-sm${onClick ? " cursor-pointer" : ""}`}
       >
         <BookOpen className={`${iconSizeClasses[size]} text-primary/60 mb-1`} />
         <p className={`${textSizeClasses[size]} font-medium text-center text-foreground/80 leading-tight line-clamp-2`}>
@@ -48,7 +51,10 @@ export function BookCover({ title, author, coverUrl, size = "md" }: BookCoverPro
   }
 
   return (
-    <div className={`${sizeClasses[size]} relative rounded-lg overflow-hidden shadow-md border border-border/50`}>
+    <div
+      {...clickProps}
+      className={`${sizeClasses[size]} relative rounded-lg overflow-hidden shadow-md border border-border/50${onClick ? " cursor-pointer" : ""}`}
+    >
       <img
         src={coverUrl}
         alt={`${title} by ${author}`}

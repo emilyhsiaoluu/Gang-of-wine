@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
+import { BookDetailDialog } from "@/components/book-detail-dialog"
 import type { SuggestedBook, Vote } from "@/lib/types"
 
 interface VoteTabProps {
@@ -77,6 +78,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const [bookToDelete, setBookToDelete] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string } | null>(null)
 
   const resetSearchState = () => {
     setSearchResults([])
@@ -89,13 +91,18 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const getVoterNames = (bookId: string) => votes.filter(v => v.bookId === bookId).map(v => v.voterName)
   const hasVoted = (bookId: string) => votes.some(v => v.bookId === bookId && v.voterName === userName)
 
+  const maxVotes = suggestions.length > 0 ? Math.max(...suggestions.map(s => getVoteCount(s.id))) : 0
+
   const sortedSuggestions = [...suggestions].sort((a, b) => {
-    const voteDiff = getVoteCount(b.id) - getVoteCount(a.id)
-    if (voteDiff !== 0) return voteDiff
+    const aVotes = getVoteCount(a.id)
+    const bVotes = getVoteCount(b.id)
+    // Book(s) with the most votes stay at top
+    if (aVotes === maxVotes && bVotes !== maxVotes) return -1
+    if (bVotes === maxVotes && aVotes !== maxVotes) return 1
+    // Everything else: most recently added first
     return (b.createdAt ?? "") > (a.createdAt ?? "") ? 1 : -1
   })
-  const leadingBookId = sortedSuggestions[0]?.id
-  const maxVotes = getVoteCount(leadingBookId)
+  const leadingBookId = maxVotes > 0 ? sortedSuggestions[0]?.id : undefined
 
   const handleSearch = async () => {
     if (!formData.title && !formData.author) return
@@ -144,6 +151,14 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
 
   return (
     <div className="space-y-4">
+      <BookDetailDialog
+        open={!!detailBook}
+        onClose={() => setDetailBook(null)}
+        title={detailBook?.title ?? ""}
+        author={detailBook?.author ?? ""}
+        coverUrl={detailBook?.coverUrl}
+      />
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!bookToDelete} onOpenChange={(open) => !open && setBookToDelete(null)}>
         <AlertDialogContent>
@@ -364,6 +379,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                       author={book.author}
                       coverUrl={book.coverUrl}
                       size="md"
+                      onClick={() => setDetailBook({ title: book.title, author: book.author, coverUrl: book.coverUrl })}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-2">
