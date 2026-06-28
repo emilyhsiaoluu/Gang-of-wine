@@ -303,7 +303,11 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
     const shareUrl = new URL(window.location.origin)
     if (meeting.book.coverUrl) {
-      shareUrl.searchParams.set("ogImage", meeting.book.coverUrl.replace(/-[SM]\.jpg$/, '-L.jpg'))
+      const raw = meeting.book.coverUrl
+      const highRes = raw.includes("books.google.com")
+        ? raw.replace(/&edge=curl/, "").replace(/zoom=\d+/, "zoom=5")
+        : raw.replace(/-[SM]\.jpg$/, "-L.jpg")
+      shareUrl.searchParams.set("ogImage", highRes)
     }
 
     if (!navigator.share) {
