@@ -40,32 +40,31 @@ type BookMatch = {
 }
 
 async function searchBooks(title: string, author: string): Promise<BookMatch[]> {
-  const parts: string[] = []
-  if (title.trim()) parts.push(`intitle:${title.trim()}`)
-  if (author.trim()) parts.push(`inauthor:${author.trim()}`)
-  if (parts.length === 0) return []
-  const params = new URLSearchParams({ q: parts.join("+"), maxResults: "5" })
-  const response = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`)
+  const params = new URLSearchParams({ limit: "5" })
+  if (title.trim()) params.set("title", title.trim())
+  if (author.trim()) params.set("author", author.trim())
+  const response = await fetch(`https://openlibrary.org/search.json?${params.toString()}`)
   if (!response.ok) {
-    throw new Error(`Google Books returned ${response.status} ${response.statusText}`)
+    throw new Error(`Open Library returned ${response.status} ${response.statusText}`)
   }
   const data = await response.json()
-  const items = (data.items ?? []) as any[]
-  return items.slice(0, 5).map((item) => {
-    const info = item.volumeInfo ?? {}
-    const firstAuthor = Array.isArray(info.authors) && info.authors.length > 0 ? info.authors[0] : author
-    const year = typeof info.publishedDate === "string" ? info.publishedDate.slice(0, 4) : undefined
-    const raw: string | undefined = info.imageLinks?.thumbnail ?? info.imageLinks?.smallThumbnail
-    const coverUrl = raw
-      ? raw.replace(/^http:/, "https:").replace(/&edge=curl/, "").replace(/zoom=\d+/, "zoom=3")
-      : undefined
+  const docs = (data.docs ?? []) as any[]
+  return docs.slice(0, 5).map((doc) => {
+    const firstAuthor =
+      Array.isArray(doc.author_name) && doc.author_name.length > 0 ? doc.author_name[0] : author
+    const year =
+      typeof doc.first_publish_year === "number" ? String(doc.first_publish_year) : undefined
+    const coverUrl =
+      typeof doc.cover_i === "number"
+        ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+        : undefined
+    const id = typeof doc.key === "string" ? doc.key : `${doc.title}-${firstAuthor}`
     return {
-      id: item.id ?? `${info.title}-${firstAuthor}`,
-      title: typeof info.title === "string" ? info.title : title,
+      id,
+      title: typeof doc.title === "string" ? doc.title : title,
       author: firstAuthor,
       publishedYear: year,
       coverUrl,
-      description: typeof info.description === "string" ? info.description : undefined,
     }
   })
 }
@@ -133,7 +132,9 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
       title: selectedBook.title,
       author: selectedBook.author,
       description: selectedBook.description,
-      coverUrl: selectedBook.coverUrl,
+      coverUrl:
+        selectedBook.coverUrl ??
+        `https://covers.openlibrary.org/b/title/${encodeURIComponent(selectedBook.title)}-M.jpg`,
     })
     setFormData({ title: "", author: "" })
     setSearchResults([])
