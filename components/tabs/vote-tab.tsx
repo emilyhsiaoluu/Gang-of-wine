@@ -464,15 +464,15 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                           <span className="text-xs text-primary font-medium">more</span>
                         </div>
                       )}
-                      {(cardData[book.id]?.rating !== null || (cardData[book.id]?.subjects.length ?? 0) > 0) && (
+                      {(cardData[book.id]?.rating != null || (cardData[book.id]?.subjects.length ?? 0) > 0) && (
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          {cardData[book.id]?.rating !== null && (
+                          {cardData[book.id]?.rating != null && (
                             <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
                               <Star className="h-3 w-3 fill-primary text-primary" />
-                              {cardData[book.id].rating}
+                              {cardData[book.id]?.rating}
                             </span>
                           )}
-                          {cardData[book.id]?.subjects.map((s) => (
+                          {cardData[book.id]?.subjects?.map((s) => (
                             <span key={s} className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
                               {s}
                             </span>
