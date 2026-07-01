@@ -44,10 +44,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${playfair.variable} ${sourceSans.variable} font-sans antialiased`}>
-        <PostHogProvider>
-          {children}
-          <Analytics />
-        </PostHogProvider>
+        <PostHogProvider />
+        {children}
+        <Analytics />
       </body>
     </html>
   )
