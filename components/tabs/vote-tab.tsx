@@ -383,7 +383,11 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-2">
-                        <div className="min-w-0">
+                        <button
+                          type="button"
+                          className="min-w-0 text-left"
+                          onClick={() => setDetailBook({ title: book.title, author: book.author, coverUrl: book.coverUrl })}
+                        >
                           <div className="flex items-center gap-2">
                             {isLeading && (
                               <Trophy className="h-4 w-4 text-primary flex-shrink-0" />
@@ -396,7 +400,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                           <p className="text-xs text-muted-foreground mt-1">
                             Suggested by {book.suggestedBy}
                           </p>
-                        </div>
+                        </button>
                       </div>
                       {book.description && (
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
