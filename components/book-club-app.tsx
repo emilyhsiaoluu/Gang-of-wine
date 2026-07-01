@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { usePostHog } from "posthog-js/react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScheduleTab } from "@/components/tabs/schedule-tab"
 import { VoteTab } from "@/components/tabs/vote-tab"
@@ -24,6 +25,8 @@ interface BookClubAppProps {
 }
 
 export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
+  const posthog = usePostHog()
+
   const getStartOfTodayMs = () => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -73,6 +76,10 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useEffect(() => {
+    if (userName) posthog?.identify(userName, { name: userName })
+  }, [userName, posthog])
 
   // Keep schedule/archive split accurate when the day changes (midnight).
   useEffect(() => {
@@ -154,6 +161,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
   }, [meetings, todayStartMs])
 
   const handleAddMeeting = async (meeting: Omit<Meeting, "id" | "rsvps">) => {
+    posthog?.capture("meeting_scheduled", { book_title: meeting.book.title, date: meeting.date, location: meeting.location })
     try {
       await addMeeting(meeting)
       await refreshData()
@@ -164,6 +172,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
   }
 
   const handleRSVP = async (meetingId: string, response: "yes" | "no" | "maybe", rsvpName: string) => {
+    posthog?.capture("rsvp_submitted", { meeting_id: meetingId, response })
     try {
       await upsertRsvp(meetingId, response, rsvpName)
       await refreshData()
@@ -174,6 +183,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
   }
 
   const handleSuggestBook = async (book: Omit<SuggestedBook, "id" | "suggestedBy">) => {
+    posthog?.capture("book_suggested", { book_title: book.title, book_author: book.author })
     try {
       await addSuggestion(book, userName)
       await refreshData()
@@ -184,6 +194,8 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
   }
 
   const handleVote = async (bookId: string) => {
+    const book = suggestions.find((s) => s.id === bookId)
+    posthog?.capture("book_vote_toggled", { book_id: bookId, book_title: book?.title })
     try {
       await toggleVote(bookId, userName)
       await refreshData()
@@ -278,7 +290,11 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
             </button>
           </div>
         )}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={(tab) => { setActiveTab(tab); posthog?.capture("tab_viewed", { tab }) }}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-3 mb-6 h-auto p-1 bg-muted">
             <TabsTrigger
               value="schedule"
@@ -304,8 +320,8 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
           </TabsList>
 
           <TabsContent value="schedule" className="mt-0">
-            <ScheduleTab 
-              meetings={upcomingMeetings} 
+            <ScheduleTab
+              meetings={upcomingMeetings}
               userName={userName}
               onAddMeeting={handleAddMeeting}
               onRSVP={handleRSVP}
