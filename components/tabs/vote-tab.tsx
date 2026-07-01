@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search } from "lucide-react"
+import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search, Star } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
 import type { SuggestedBook, Vote } from "@/lib/types"
@@ -69,6 +69,56 @@ async function searchBooks(title: string, author: string): Promise<BookMatch[]> 
   })
 }
 
+type CardBookData = {
+  description: string | null
+  subjects: string[]
+  rating: number | null
+}
+
+async function fetchCardData(title: string, author: string): Promise<CardBookData> {
+  const empty: CardBookData = { description: null, subjects: [], rating: null }
+  try {
+    const params = new URLSearchParams({ title: title.trim(), author: author.trim(), limit: "1" })
+    const res = await fetch(`https://openlibrary.org/search.json?${params}`)
+    if (!res.ok) return empty
+    const data = await res.json()
+    const doc = data.docs?.[0]
+    if (!doc) return empty
+
+    const subjects: string[] = Array.isArray(doc.subject)
+      ? (doc.subject as string[]).filter((s) => s.length <= 25).slice(0, 3)
+      : []
+
+    const ratingAvg = typeof doc.ratings_average === "number" ? doc.ratings_average : null
+    const ratingCount = typeof doc.ratings_count === "number" ? doc.ratings_count : 0
+    const rating = ratingAvg !== null && ratingCount > 20
+      ? Math.round(ratingAvg * 10) / 10
+      : null
+
+    let description: string | null = null
+    if (doc.key) {
+      try {
+        const wRes = await fetch(`https://openlibrary.org${doc.key}.json`)
+        if (wRes.ok) {
+          const works = await wRes.json()
+          const desc = works.description
+          if (typeof desc === "string" && desc.trim()) description = desc.trim()
+          else if (typeof desc?.value === "string" && desc.value.trim()) description = desc.value.trim()
+        }
+      } catch { /* ignore */ }
+    }
+    if (!description) {
+      const fs = doc.first_sentence
+      if (Array.isArray(fs) && fs[0]) description = String(fs[0])
+      else if (typeof fs === "string") description = fs
+    }
+
+    return { description, subjects, rating }
+  } catch {
+    return empty
+  }
+}
+
 export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeeting, onSuggest, onDelete }: VoteTabProps) {
   const [showForm, setShowForm] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -79,6 +129,19 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const [searchError, setSearchError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string } | null>(null)
+  const [cardData, setCardData] = useState<Record<string, CardBookData>>({})
+  const fetchedIdsRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    suggestions.forEach((book) => {
+      if (!fetchedIdsRef.current.has(book.id)) {
+        fetchedIdsRef.current.add(book.id)
+        fetchCardData(book.title, book.author).then((data) =>
+          setCardData((prev) => ({ ...prev, [book.id]: data }))
+        )
+      }
+    })
+  }, [suggestions])
 
   const resetSearchState = () => {
     setSearchResults([])
@@ -373,74 +436,83 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                 </Button>
 
                 <CardContent className="p-4 pr-10">
-                  <div className="flex gap-4">
+                  {/* Tappable: cover + title + author + description */}
+                  <div
+                    className="flex gap-4 cursor-pointer"
+                    onClick={() => setDetailBook({ title: book.title, author: book.author, coverUrl: book.coverUrl })}
+                  >
                     <BookCover
                       title={book.title}
                       author={book.author}
                       coverUrl={book.coverUrl}
                       size="md"
-                      onClick={() => setDetailBook({ title: book.title, author: book.author, coverUrl: book.coverUrl })}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-2">
-                        <button
-                          type="button"
-                          className="min-w-0 text-left"
-                          onClick={() => setDetailBook({ title: book.title, author: book.author, coverUrl: book.coverUrl })}
-                        >
-                          <div className="flex items-center gap-2">
-                            {isLeading && (
-                              <Trophy className="h-4 w-4 text-primary flex-shrink-0" />
-                            )}
-                            <h3 className="font-serif text-lg font-semibold text-foreground truncate">
-                              {book.title}
-                            </h3>
-                          </div>
-                          <p className="text-muted-foreground text-sm">{book.author}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Suggested by {book.suggestedBy}
-                          </p>
-                        </button>
+                      <div className="flex items-center gap-2">
+                        {isLeading && <Trophy className="h-4 w-4 text-primary flex-shrink-0" />}
+                        <h3 className="font-serif text-lg font-semibold text-foreground truncate">
+                          {book.title}
+                        </h3>
                       </div>
-                      {book.description && (
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
-                          {book.description}
-                        </p>
-                      )}
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center gap-1 text-sm">
-                          <span className="font-semibold text-primary">{voteCount}</span>
-                          <span className="text-muted-foreground">
-                            {voteCount === 1 ? 'vote' : 'votes'}
-                          </span>
+                      <p className="text-muted-foreground text-sm">{book.author}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Suggested by {book.suggestedBy}</p>
+                      {cardData[book.id]?.description && (
+                        <div className="mt-2">
+                          <p className="text-sm text-muted-foreground line-clamp-3">
+                            {cardData[book.id].description}
+                          </p>
+                          <span className="text-xs text-primary font-medium">more</span>
                         </div>
-                        {voterNames.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            Voted by: {voterNames.join(", ")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-3">
-                        <Button
-                          variant={voted ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => onVote(book.id)}
-                          className={`gap-2 ${voted ? 'bg-primary hover:bg-primary/90' : ''}`}
-                        >
-                          <Heart className={`h-4 w-4 ${voted ? 'fill-current' : ''}`} />
-                          {voted ? 'Voted' : 'Vote'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onScheduleMeeting(book)}
-                          className="gap-2"
-                        >
-                          <Calendar className="h-4 w-4" />
-                          Schedule a Meeting
-                        </Button>
-                      </div>
+                      )}
+                      {(cardData[book.id]?.rating !== null || (cardData[book.id]?.subjects.length ?? 0) > 0) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {cardData[book.id]?.rating !== null && (
+                            <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                              <Star className="h-3 w-3 fill-primary text-primary" />
+                              {cardData[book.id].rating}
+                            </span>
+                          )}
+                          {cardData[book.id]?.subjects.map((s) => (
+                            <span key={s} className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                  </div>
+
+                  {/* Vote count + names */}
+                  <div className="mt-3 space-y-1">
+                    <div className="flex items-center gap-1 text-sm">
+                      <span className="font-semibold text-primary">{voteCount}</span>
+                      <span className="text-muted-foreground">{voteCount === 1 ? 'vote' : 'votes'}</span>
+                    </div>
+                    {voterNames.length > 0 && (
+                      <p className="text-xs text-muted-foreground">Voted by: {voterNames.join(", ")}</p>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <Button
+                      variant={voted ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => onVote(book.id)}
+                      className={`gap-2 ${voted ? 'bg-primary hover:bg-primary/90' : ''}`}
+                    >
+                      <Heart className={`h-4 w-4 ${voted ? 'fill-current' : ''}`} />
+                      {voted ? 'Voted' : 'Vote'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onScheduleMeeting(book)}
+                      className="gap-2"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      Schedule a Meeting
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
