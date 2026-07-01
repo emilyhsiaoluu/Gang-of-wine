@@ -361,10 +361,16 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
           {/* Content */}
           <div className="flex-1 p-4 sm:pl-0 pr-10">
-            <h3 className="font-serif text-xl font-semibold text-foreground mb-1">
-              {meeting.book.title}
-            </h3>
-            <p className="text-muted-foreground mb-4">by {meeting.book.author}</p>
+            <button
+              type="button"
+              className="text-left mb-4"
+              onClick={() => setDetailOpen(true)}
+            >
+              <h3 className="font-serif text-xl font-semibold text-foreground">
+                {meeting.book.title}
+              </h3>
+              <p className="text-muted-foreground">by {meeting.book.author}</p>
+            </button>
 
             {/* Tappable meeting details */}
             <div className="flex flex-wrap gap-2 text-sm mb-4">

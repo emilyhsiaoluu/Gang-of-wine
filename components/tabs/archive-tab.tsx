@@ -170,10 +170,16 @@ export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-serif text-xl font-semibold text-foreground mb-1">
-                    {meeting.book.title}
-                  </h3>
-                  <p className="text-muted-foreground">{meeting.book.author}</p>
+                  <button
+                    type="button"
+                    className="text-left mb-1"
+                    onClick={() => setDetailBook({ title: meeting.book.title, author: meeting.book.author, coverUrl: meeting.book.coverUrl })}
+                  >
+                    <h3 className="font-serif text-xl font-semibold text-foreground">
+                      {meeting.book.title}
+                    </h3>
+                    <p className="text-muted-foreground">{meeting.book.author}</p>
+                  </button>
                   
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
