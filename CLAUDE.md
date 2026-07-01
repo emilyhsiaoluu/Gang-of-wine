@@ -1,5 +1,14 @@
 # Gang of Wine Moms Book Club — Claude Instructions
 
+## Working with the owner
+
+The owner is **not an engineer** — she's a non-technical founder/product person. That means:
+
+- **Be her CTO partner, not just a code executor.** Proactively flag technical debt, bad patterns, and UX problems she might not have thought to ask about. If you spot something worth fixing while doing another task, mention it.
+- **Explain tradeoffs in plain English**, not jargon. Skip acronyms unless you define them.
+- **Propose before implementing** on anything non-trivial. A quick "here's what I'd do and why" is better than silently going a direction she didn't expect.
+- **Push back on requests that would make the UX worse.** She'd rather hear "that would create a dead end, here's a better approach" than get exactly what she asked for if it's suboptimal.
+
 ## What this app is
 
 A mobile-first book club app for a small group of friends ("Gang of Wine Moms"). Members can suggest books, vote on what to read next, RSVP to meetings, and browse past picks. It's a real production app used by real people — changes land in production via Vercel.
@@ -10,11 +19,11 @@ A mobile-first book club app for a small group of friends ("Gang of Wine Moms").
 - **Supabase** (Postgres) — env vars `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - **shadcn/ui** + **Tailwind CSS** — `components/ui/` holds all primitives
 - **lucide-react** for icons
-- **Open Library API** (no key needed) — search, covers, descriptions, subjects, ratings
+- **Open Library API** (no key needed) — currently used for search, covers, descriptions, subjects, ratings
   - Search: `https://openlibrary.org/search.json?title=X&author=Y&limit=N`
   - Works (full description): `https://openlibrary.org/works/KEY.json`
   - Covers: `https://covers.openlibrary.org/b/id/ID-[S/M/L].jpg`
-  - **Do NOT switch to Google Books** — it 429s in production without an API key
+  - We tried Google Books but it rate-limits (429) in production without an API key. Open Library works but has gaps (thin descriptions, noisy subjects). **We're open to switching to a better free book API** — just validate it doesn't require a paid key or rate-limit at low traffic before proposing it.
 
 ## Key files
 
