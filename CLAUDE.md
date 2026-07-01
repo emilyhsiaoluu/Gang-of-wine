@@ -52,7 +52,7 @@ A mobile-first book club app for a small group of friends ("Gang of Wine Moms").
    git push --force-with-lease origin claude/supabase-database-name-gg9h06
    ```
 2. Open a draft PR, wait for Vercel to show **Ready**, then merge with squash.
-3. **Always share the preview URL after every push:**
+3. **Always paste the preview URL in chat after every push — every single time, even if you just shared it:**
    `https://gang-of-wine-git-claude-sup-a57bf6-emilyhsiaoluu-5596s-projects.vercel.app`
 
 **Why:** The owner's friends use prod. Test on the preview URL, never dogfood on prod.
