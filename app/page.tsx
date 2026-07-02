@@ -8,7 +8,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   if (!ogImage) return {}
   const decoded = decodeURIComponent(ogImage)
   return {
-    openGraph: { images: [{ url: decoded, width: 200, height: 300, alt: "Book cover" }] },
+    openGraph: { images: [{ url: decoded, alt: "Book cover" }] },
     twitter: { images: [decoded] },
   }
 }
