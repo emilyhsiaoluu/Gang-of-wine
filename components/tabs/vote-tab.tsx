@@ -215,9 +215,10 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
 
   const handleShare = async (book: SuggestedBook) => {
     const title = `Vote for ${book.title}! 📚`
-    const text = `I just suggested ${book.title} by ${book.author} for book club — please vote for it! 📚🍷`
+    const text = `${book.title} by ${book.author} was suggested — please vote for it! 📚🍷`
 
     const shareUrl = new URL(window.location.origin)
+    shareUrl.searchParams.set("tab", "vote")
     if (book.coverUrl) {
       const raw = book.coverUrl
       const highRes = raw.includes("books.google.com")
