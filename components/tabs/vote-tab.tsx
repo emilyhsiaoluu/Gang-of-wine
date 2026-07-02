@@ -78,7 +78,13 @@ type CardBookData = {
 async function fetchCardData(title: string, author: string): Promise<CardBookData> {
   const empty: CardBookData = { description: null, subjects: [], rating: null }
   try {
-    const params = new URLSearchParams({ title: title.trim(), author: author.trim(), limit: "1" })
+    const params = new URLSearchParams({
+      title: title.trim(),
+      author: author.trim(),
+      limit: "1",
+      // OL search no longer includes these in its default response; they must be requested
+      fields: "key,subject,ratings_average,ratings_count,first_sentence",
+    })
     const res = await fetch(`https://openlibrary.org/search.json?${params}`)
     if (!res.ok) return empty
     const data = await res.json()
