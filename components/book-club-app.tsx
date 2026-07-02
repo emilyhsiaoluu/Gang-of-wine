@@ -83,6 +83,14 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
     loadData()
   }, [loadData])
 
+  // Deep-link into a specific tab (e.g. from a shared suggestion link: ?tab=vote)
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab")
+    if (tab === "schedule" || tab === "vote" || tab === "archive") {
+      setActiveTab(tab)
+    }
+  }, [])
+
   useEffect(() => {
     if (userName) identifyUser(userName)
   }, [userName])

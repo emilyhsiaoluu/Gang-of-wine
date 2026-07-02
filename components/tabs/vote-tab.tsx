@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search, Star } from "lucide-react"
+import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search, Star, Share2 } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
 import type { SuggestedBook, Vote } from "@/lib/types"
@@ -131,6 +131,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string } | null>(null)
   const [cardData, setCardData] = useState<Record<string, CardBookData>>({})
   const fetchedIdsRef = useRef<Set<string>>(new Set())
+  const [shareLabels, setShareLabels] = useState<Record<string, string>>({})
 
   useEffect(() => {
     suggestions.forEach((book) => {
@@ -209,6 +210,36 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
     if (bookToDelete) {
       onDelete(bookToDelete)
       setBookToDelete(null)
+    }
+  }
+
+  const handleShare = async (book: SuggestedBook) => {
+    const title = `Vote for ${book.title}! 📚`
+    const text = `${book.title} by ${book.author} was suggested — please vote for it! 📚🍷`
+
+    const shareUrl = new URL(window.location.origin)
+    shareUrl.searchParams.set("tab", "vote")
+    if (book.coverUrl) {
+      const raw = book.coverUrl
+      const highRes = raw.includes("books.google.com")
+        ? raw.replace(/&edge=curl/, "").replace(/zoom=\d+/, "zoom=5")
+        : raw.replace(/-[SM]\.jpg$/, "-L.jpg")
+      shareUrl.searchParams.set("ogImage", highRes)
+    }
+
+    if (!navigator.share) {
+      await navigator.clipboard.writeText(`${text}\n${shareUrl}`).catch(() => {})
+      setShareLabels((prev) => ({ ...prev, [book.id]: "Copied!" }))
+      setTimeout(() => setShareLabels((prev) => ({ ...prev, [book.id]: "Share" })), 2000)
+      return
+    }
+
+    try {
+      await navigator.share({ title, text, url: shareUrl.toString() })
+    } catch (err) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Share failed:", err)
+      }
     }
   }
 
@@ -512,6 +543,15 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     >
                       <Calendar className="h-4 w-4" />
                       Schedule a Meeting
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleShare(book)}
+                      className="gap-1.5 text-primary/60 hover:text-primary hover:bg-primary/10"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      {shareLabels[book.id] ?? "Share"}
                     </Button>
                   </div>
                 </CardContent>
