@@ -14,6 +14,7 @@ import {
   deleteSuggestion,
   fetchAppData,
   finalizeMeetingDate,
+  reopenDatePoll,
   toggleDateVote,
   toggleVote,
   updateMeeting,
@@ -243,6 +244,17 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
     }
   }
 
+  const handleReopenPoll = async (meetingId: string) => {
+    track("date_poll_reopened", { meeting_id: meetingId })
+    try {
+      await reopenDatePoll(meetingId)
+      await refreshData()
+    } catch (error) {
+      console.error("Failed reopening date poll:", error)
+      setErrorMessage("Could not reopen the date poll. Please try again.")
+    }
+  }
+
   const handleDeleteMeeting = async (meetingId: string) => {
     try {
       await deleteMeeting(meetingId)
@@ -367,6 +379,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
               onUpdateMeeting={handleUpdateMeeting}
               onToggleDateVote={handleToggleDateVote}
               onFinalizeDate={handleFinalizeDate}
+              onReopenPoll={handleReopenPoll}
               prefillBook={scheduleFormBook}
               onPrefillUsed={() => setScheduleFormBook(null)}
               onSuggestionScheduled={handleDeleteSuggestion}

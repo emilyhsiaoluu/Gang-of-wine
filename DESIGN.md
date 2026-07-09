@@ -63,7 +63,10 @@ is read-only-ish (meeting chips tap to edit). **Action bar** is always last.
 Instagram-style strip that keeps actions tidy instead of a wrapping pile of
 labeled buttons:
 
-- **Row of icon actions** (`ghost`, `rounded-full`, 48px tall, 24px icons).
+- **Row of icon actions** (`ghost`, `rounded-full`, 48px tall, 28px icons at
+  stroke 2 — match Instagram's icon weight; anything thinner reads as tiny).
+  Beware: the shadcn `Button` forces `size-4` on child svgs, so icon size
+  classes need `!` (e.g. `!h-7 !w-7`) or they silently render at 16px.
   Order = importance: engage (♥ vote) → act (📅 schedule) → spread (↗ share).
 - **Active state:** filled icon + `text-primary` (like a liked heart). Counts
   sit beside the icon (`♥ 3`).
@@ -84,10 +87,18 @@ card — new actions join the bar.
 
 A meeting can start as a poll instead of a fixed date ("Set a date | Poll for
 dates" toggle in the schedule form). Poll cards show tappable date rows
-(checkbox-style toggle = "works for me"), voter names + counts per row, the
-leading row gets a subtle ring, and a "Lock in <date>" button converts the
-poll into a normal RSVP meeting (with confirm dialog). Same interaction grammar
-as book voting: tap to toggle, leader highlighted, then someone finalizes.
+(whole row toggles "works for me"; rows are ≥52px tall with a 28px check
+circle), voter names + counts per row, and the leading row gets a subtle ring.
+Same interaction grammar as book voting: tap to toggle, leader highlighted.
+
+**Finalizing is a quiet status row, not a big button**: "Fri, Jul 24 is
+winning · Lock it in". A prominent CTA below the options reads as a required
+submit step and confuses voters (learned 2026-07). Voting must feel instant.
+
+**Polls are reversible**: locking in keeps the options + votes. If the date
+stops working, edit the meeting → "Reopen the poll" flips it back to voting.
+While polling, the card hides the time chip (no "TBD" noise) — time gets set
+after a date wins.
 
 ## Interaction grammar
 

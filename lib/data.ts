@@ -257,19 +257,28 @@ export async function toggleDateVote(meetingId: string, optionId: string, voterN
 }
 
 export async function finalizeMeetingDate(meetingId: string, date: string) {
+  // Options (and everyone's availability votes) are kept so the poll can be
+  // reopened later if the locked-in date stops working.
   if (isDemoMode()) {
     const meeting = getDemoState().meetings.find((m) => m.id === meetingId)
-    if (meeting) {
-      meeting.date = date
-      meeting.dateOptions = undefined
-    }
+    if (meeting) meeting.date = date
     return
   }
   const supabase = getSupabaseClient()
-  const { error } = await supabase
-    .from("meetings")
-    .update({ date, date_options: null })
-    .eq("id", meetingId)
+  const { error } = await supabase.from("meetings").update({ date }).eq("id", meetingId)
+  if (error) throw error
+}
+
+export async function reopenDatePoll(meetingId: string) {
+  // Clearing the date flips the meeting back into polling mode; the previous
+  // options and votes are still there for people to adjust.
+  if (isDemoMode()) {
+    const meeting = getDemoState().meetings.find((m) => m.id === meetingId)
+    if (meeting) meeting.date = ""
+    return
+  }
+  const supabase = getSupabaseClient()
+  const { error } = await supabase.from("meetings").update({ date: null }).eq("id", meetingId)
   if (error) throw error
 }
 

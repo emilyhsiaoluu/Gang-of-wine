@@ -32,6 +32,7 @@ interface ScheduleTabProps {
   onUpdateMeeting: (meetingId: string, updates: Partial<Omit<Meeting, "id" | "rsvps" | "book">>) => void
   onToggleDateVote: (meetingId: string, optionId: string) => void
   onFinalizeDate: (meetingId: string, date: string) => void
+  onReopenPoll: (meetingId: string) => void
   prefillBook?: SuggestedBook | null
   onPrefillUsed?: () => void
   onSuggestionScheduled?: (bookId: string) => void
@@ -46,6 +47,7 @@ export function ScheduleTab({
   onUpdateMeeting,
   onToggleDateVote,
   onFinalizeDate,
+  onReopenPoll,
   prefillBook,
   onPrefillUsed,
   onSuggestionScheduled,
@@ -64,6 +66,10 @@ export function ScheduleTab({
   const [dateMode, setDateMode] = useState<"single" | "poll">("single")
   const [pollDates, setPollDates] = useState<string[]>(["", ""])
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null)
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false)
+
+  const editingMeeting = editingMeetingId ? meetings.find((m) => m.id === editingMeetingId) : null
+  const canReopenPoll = !!editingMeeting?.date && (editingMeeting.dateOptions?.length ?? 0) > 0
 
   // Handle prefill from Vote tab
   useEffect(() => {
@@ -165,6 +171,31 @@ export function ScheduleTab({
           <p className="text-muted-foreground">Edit time &amp; location by tapping on it</p>
         )}
       </div>
+
+      {/* Reopen Poll Confirmation Dialog */}
+      <AlertDialog open={showReopenConfirm} onOpenChange={setShowReopenConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reopen the date poll?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The meeting goes back to voting on dates. Everyone&apos;s previous availability
+              votes are kept — the gang can update them and a new date gets locked in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Never mind</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (editingMeetingId) onReopenPoll(editingMeetingId)
+                setShowReopenConfirm(false)
+                handleCancelForm()
+              }}
+            >
+              Reopen poll
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!meetingToDelete} onOpenChange={(open) => !open && setMeetingToDelete(null)}>
@@ -328,6 +359,20 @@ export function ScheduleTab({
                   Cancel
                 </Button>
               </div>
+              {canReopenPoll && (
+                <div className="border-t border-border pt-3 mt-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-11 gap-1.5 text-primary hover:text-primary hover:bg-primary/10 -ml-3"
+                    onClick={() => setShowReopenConfirm(true)}
+                  >
+                    <Vote className="h-4 w-4" />
+                    Date no longer works? Reopen the poll
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
@@ -496,13 +541,15 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                   {formatDate(meeting.date)}
                 </button>
               )}
-              <button
-                onClick={onEdit}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Clock className="h-4 w-4" />
-                {formatTime(meeting.time)}
-              </button>
+              {!isPolling && (
+                <button
+                  onClick={onEdit}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Clock className="h-4 w-4" />
+                  {formatTime(meeting.time)}
+                </button>
+              )}
               <button
                 onClick={onEdit}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
