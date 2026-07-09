@@ -301,28 +301,27 @@ export function ScheduleTab({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {dateMode === "poll" && !editingMeetingId && (
-                  <div className="space-y-2">
-                    <Label htmlFor="time">Time (optional, can set later)</Label>
-                    <TimePicker
-                      value={formData.time}
-                      onChange={(v) => setFormData({ ...formData, time: v })}
-                    />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    placeholder="e.g., Emily's House"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  placeholder="e.g., Emily's House"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button type="submit">
+                <Button
+                  type="submit"
+                  disabled={
+                    !formData.bookTitle ||
+                    !formData.bookAuthor ||
+                    !formData.location ||
+                    (dateMode === "poll" && !editingMeetingId
+                      ? [...new Set(pollDates.filter(Boolean))].length < 2
+                      : !formData.date && !editingMeetingId)
+                  }
+                >
                   {editingMeetingId ? "Save Changes" : dateMode === "poll" ? "Start Date Poll" : "Add Meeting"}
                 </Button>
                 <Button type="button" variant="outline" onClick={handleCancelForm}>
@@ -444,7 +443,17 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
         author={meeting.book.author}
         coverUrl={meeting.book.coverUrl}
       />
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden relative">
+      {/* Delete Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
+        onClick={onDelete}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+
       <CardContent className="p-0">
         <div className="flex flex-col sm:flex-row">
           {/* Book Cover */}
@@ -459,7 +468,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-4 sm:pl-0">
+          <div className="flex-1 p-4 sm:pl-0 pr-10">
             <button
               type="button"
               className="text-left mb-4"
@@ -575,10 +584,6 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
             {/* Action bar */}
             <CardActionBar
               actions={[{ icon: Share2, label: shareLabel, onClick: handleShare }]}
-              menuItems={[
-                { label: "Edit details", onClick: onEdit },
-                { label: "Delete meeting", onClick: onDelete, destructive: true },
-              ]}
             />
           </div>
         </div>

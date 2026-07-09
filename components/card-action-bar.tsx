@@ -1,14 +1,7 @@
 "use client"
 
 import type { LucideIcon } from "lucide-react"
-import { MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 export interface CardAction {
   icon: LucideIcon
@@ -20,28 +13,21 @@ export interface CardAction {
   count?: number | string
 }
 
-export interface CardMenuItem {
-  label: string
-  onClick: () => void
-  destructive?: boolean
-}
-
 interface CardActionBarProps {
   actions: CardAction[]
-  menuItems?: CardMenuItem[]
   /** Social-proof line under the icons, e.g. "Voted by Emily, Sarah" */
   caption?: React.ReactNode
 }
 
 /**
- * Instagram-style action row for cards: a tidy strip of icon buttons on the
- * left, an overflow "…" menu on the right for rare/destructive actions, and
- * an optional caption line underneath. See DESIGN.md → "Card action bar".
+ * Instagram-style action row for cards: a row of large icon buttons with an
+ * optional caption line underneath. Separation from the content above comes
+ * from whitespace, not a divider. See DESIGN.md → "Card action bar".
  */
-export function CardActionBar({ actions, menuItems, caption }: CardActionBarProps) {
+export function CardActionBar({ actions, caption }: CardActionBarProps) {
   return (
-    <div className="border-t border-border pt-1 mt-3 -mx-4 px-2">
-      <div className="flex items-center">
+    <div className="mt-3 -ml-3">
+      <div className="flex items-center gap-1">
         {actions.map(({ icon: Icon, label, onClick, active, count }) => (
           <Button
             key={label}
@@ -50,49 +36,21 @@ export function CardActionBar({ actions, menuItems, caption }: CardActionBarProp
             onClick={onClick}
             aria-label={label}
             aria-pressed={active}
-            className={`h-11 px-3 gap-1.5 rounded-full ${
+            className={`h-12 px-3 gap-2 rounded-full ${
               active
                 ? "text-primary hover:text-primary hover:bg-primary/10"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Icon className={`h-5 w-5 ${active ? "fill-current" : ""}`} />
+            <Icon className={`h-6 w-6 ${active ? "fill-current" : ""}`} strokeWidth={1.75} />
             {count != null && count !== 0 && (
-              <span className="text-sm font-medium tabular-nums">{count}</span>
+              <span className="text-base font-medium tabular-nums">{count}</span>
             )}
-            <span className="sr-only sm:not-sr-only sm:text-xs sm:font-medium">{label}</span>
+            <span className="sr-only sm:not-sr-only sm:text-sm sm:font-medium">{label}</span>
           </Button>
         ))}
-
-        {menuItems && menuItems.length > 0 && (
-          <div className="ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="More options"
-                  className="h-11 w-11 rounded-full text-muted-foreground hover:text-foreground"
-                >
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {menuItems.map((item) => (
-                  <DropdownMenuItem
-                    key={item.label}
-                    onClick={item.onClick}
-                    className={item.destructive ? "text-destructive focus:text-destructive" : ""}
-                  >
-                    {item.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
       </div>
-      {caption && <p className="px-3 pb-2 text-xs text-muted-foreground">{caption}</p>}
+      {caption && <p className="px-3 text-sm text-muted-foreground">{caption}</p>}
     </div>
   )
 }

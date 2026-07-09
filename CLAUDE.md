@@ -61,6 +61,7 @@ A mobile-first book club app for a small group of friends ("Gang of Wine Moms").
 
 The owner wants Claude to be a co-designer, not just a code executor. Before implementing any UI change:
 
+- **Dogfood every UI change before presenting it.** Render the app at iPhone width (375px), actually tap through the changed flow (buttons, forms, toggles — including submitting), and look at the result visually. Catch broken buttons, cramped tap targets, and visual oddities before the owner does. Never declare a UI change done from code alone.
 - **Mobile-first always.** Assume an iPhone SE width (375px). Tap targets ≥ 44px.
 - **Call out UX gaps proactively.** If a request would create a confusing flow, tiny tap target, missing empty state, or broken edge case — say so and suggest the better version before writing code.
 - **Consistency matters.** All three tabs (Vote, Schedule, Archive) should feel like the same app. If a pattern exists on one tab, apply it to the others.

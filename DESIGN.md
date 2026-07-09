@@ -63,18 +63,22 @@ is read-only-ish (meeting chips tap to edit). **Action bar** is always last.
 Instagram-style strip that keeps actions tidy instead of a wrapping pile of
 labeled buttons:
 
-- **Left:** up to 3 icon actions (`ghost`, `rounded-full`, 44px tall). Order =
-  importance: engage (♥ vote) → act (📅 schedule) → spread (↗ share).
+- **Row of icon actions** (`ghost`, `rounded-full`, 48px tall, 24px icons).
+  Order = importance: engage (♥ vote) → act (📅 schedule) → spread (↗ share).
 - **Active state:** filled icon + `text-primary` (like a liked heart). Counts
   sit beside the icon (`♥ 3`).
-- **Right:** a `⋯` overflow `DropdownMenu` for rare or destructive actions
-  (edit, delete). Delete renders in `destructive` red and still confirms.
+- **No divider line above it** — separation from card content comes from
+  whitespace (`mt-3`), like an IG post. Dividers inside cards are reserved
+  for the interactive zone (RSVP / poll sections).
 - **Caption:** optional social-proof line beneath ("Voted by Emily, Sarah") —
   the IG "liked by" pattern.
-- Icon-only on the smallest screens, icon + tiny label from `sm:` up.
+- Icon-only on the smallest screens, icon + label from `sm:` up.
+- **Delete stays as the top-right X** (owner preference, 2026-07). If a card
+  ever needs 3+ hidden actions, revisit a `⋯` overflow menu — until then,
+  don't hide actions one level deep.
 
-Rule of thumb: if a card grows a fourth inline action, one of them moves to
-the overflow. Never add a one-off button floating elsewhere on the card.
+Rule of thumb: never add a one-off labeled button floating elsewhere on the
+card — new actions join the bar.
 
 ## Date poll (`components/date-poll.tsx`)
 

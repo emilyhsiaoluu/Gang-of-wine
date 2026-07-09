@@ -455,9 +455,19 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
             return (
               <Card
                 key={book.id}
-                className={`transition-all ${isLeading ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+                className={`transition-all relative ${isLeading ? 'ring-2 ring-primary bg-primary/5' : ''}`}
               >
-                <CardContent className="p-4">
+                {/* Delete Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
+                  onClick={() => setBookToDelete(book.id)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+
+                <CardContent className="p-4 pr-10">
                   {/* Tappable: cover + title + author + description */}
                   <div
                     className="flex gap-4 cursor-pointer"
@@ -516,9 +526,6 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                       },
                       { icon: Calendar, label: "Schedule", onClick: () => onScheduleMeeting(book) },
                       { icon: Share2, label: shareLabels[book.id] ?? "Share", onClick: () => handleShare(book) },
-                    ]}
-                    menuItems={[
-                      { label: "Remove suggestion", onClick: () => setBookToDelete(book.id), destructive: true },
                     ]}
                     caption={voterNames.length > 0 ? <>Voted by {voterNames.join(", ")}</> : undefined}
                   />
