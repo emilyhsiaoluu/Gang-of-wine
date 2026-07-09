@@ -13,6 +13,8 @@ import {
   deleteMeeting,
   deleteSuggestion,
   fetchAppData,
+  finalizeMeetingDate,
+  toggleDateVote,
   toggleVote,
   updateMeeting,
   upsertRsvp,
@@ -219,6 +221,28 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
     }
   }
 
+  const handleToggleDateVote = async (meetingId: string, optionId: string) => {
+    track("date_vote_toggled", { meeting_id: meetingId, option_id: optionId })
+    try {
+      await toggleDateVote(meetingId, optionId, userName)
+      await refreshData()
+    } catch (error) {
+      console.error("Failed toggling date vote:", error)
+      setErrorMessage("Could not update your availability. Please try again.")
+    }
+  }
+
+  const handleFinalizeDate = async (meetingId: string, date: string) => {
+    track("date_poll_finalized", { meeting_id: meetingId, date })
+    try {
+      await finalizeMeetingDate(meetingId, date)
+      await refreshData()
+    } catch (error) {
+      console.error("Failed finalizing date:", error)
+      setErrorMessage("Could not lock in the date. Please try again.")
+    }
+  }
+
   const handleDeleteMeeting = async (meetingId: string) => {
     try {
       await deleteMeeting(meetingId)
@@ -341,6 +365,8 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
               onRSVP={handleRSVP}
               onDeleteMeeting={handleDeleteMeeting}
               onUpdateMeeting={handleUpdateMeeting}
+              onToggleDateVote={handleToggleDateVote}
+              onFinalizeDate={handleFinalizeDate}
               prefillBook={scheduleFormBook}
               onPrefillUsed={() => setScheduleFormBook(null)}
               onSuggestionScheduled={handleDeleteSuggestion}

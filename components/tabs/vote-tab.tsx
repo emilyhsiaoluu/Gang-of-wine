@@ -18,6 +18,7 @@ import {
 import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search, Star, Share2 } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
+import { CardActionBar } from "@/components/card-action-bar"
 import type { SuggestedBook, Vote } from "@/lib/types"
 
 interface VoteTabProps {
@@ -454,19 +455,9 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
             return (
               <Card
                 key={book.id}
-                className={`transition-all relative ${isLeading ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+                className={`transition-all ${isLeading ? 'ring-2 ring-primary bg-primary/5' : ''}`}
               >
-                {/* Delete Button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
-                  onClick={() => setBookToDelete(book.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-
-                <CardContent className="p-4 pr-10">
+                <CardContent className="p-4">
                   {/* Tappable: cover + title + author + description */}
                   <div
                     className="flex gap-4 cursor-pointer"
@@ -513,47 +504,24 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     </div>
                   </div>
 
-                  {/* Vote count + names */}
-                  <div className="mt-3 space-y-1">
-                    <div className="flex items-center gap-1 text-sm">
-                      <span className="font-semibold text-primary">{voteCount}</span>
-                      <span className="text-muted-foreground">{voteCount === 1 ? 'vote' : 'votes'}</span>
-                    </div>
-                    {voterNames.length > 0 && (
-                      <p className="text-xs text-muted-foreground">Voted by: {voterNames.join(", ")}</p>
-                    )}
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <Button
-                      variant={voted ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => onVote(book.id)}
-                      className={`gap-2 ${voted ? 'bg-primary hover:bg-primary/90' : ''}`}
-                    >
-                      <Heart className={`h-4 w-4 ${voted ? 'fill-current' : ''}`} />
-                      {voted ? 'Voted' : 'Vote'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onScheduleMeeting(book)}
-                      className="gap-2"
-                    >
-                      <Calendar className="h-4 w-4" />
-                      Schedule a Meeting
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleShare(book)}
-                      className="gap-1.5 text-primary/60 hover:text-primary hover:bg-primary/10"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      {shareLabels[book.id] ?? "Share"}
-                    </Button>
-                  </div>
+                  {/* Action bar */}
+                  <CardActionBar
+                    actions={[
+                      {
+                        icon: Heart,
+                        label: voted ? "Voted" : "Vote",
+                        onClick: () => onVote(book.id),
+                        active: voted,
+                        count: voteCount,
+                      },
+                      { icon: Calendar, label: "Schedule", onClick: () => onScheduleMeeting(book) },
+                      { icon: Share2, label: shareLabels[book.id] ?? "Share", onClick: () => handleShare(book) },
+                    ]}
+                    menuItems={[
+                      { label: "Remove suggestion", onClick: () => setBookToDelete(book.id), destructive: true },
+                    ]}
+                    caption={voterNames.length > 0 ? <>Voted by {voterNames.join(", ")}</> : undefined}
+                  />
                 </CardContent>
               </Card>
             )
