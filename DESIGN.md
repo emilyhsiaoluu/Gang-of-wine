@@ -35,7 +35,7 @@ hex/oklch value in a component.
 2. **One primary action per view.** The big full-width button ("Suggest a Book") is the hero; everything else is quieter.
 3. **Show, don't hide** — but only info. Descriptions, chips, ratings live inline. *Actions* are the exception: rare/destructive actions go in the overflow menu (see Card action bar).
 4. **No dead ends.** Every empty state says what to do next. Every card has a clear action.
-5. **Destructive actions always confirm** via `AlertDialog`, and always live behind the "…" menu — never a floating X on the card.
+5. **Destructive actions are always recoverable or confirmed.** Prefer instant-delete + an 8s Undo toast (suggestion X) when the data can be restored; use an `AlertDialog` confirm when it can't be fully undone (meeting delete — though a poll-born meeting returns its book + votes to the Vote tab). Never both.
 
 ## Card anatomy
 
@@ -128,7 +128,7 @@ after a date wins.
 - [ ] Works at 375px; tap targets ≥ 44px
 - [ ] Uses tokens (no raw colors), serif only for titles
 - [ ] Card follows the anatomy above; actions live in the action bar
-- [ ] Destructive path = overflow menu + confirm dialog
+- [ ] Destructive path = undo toast (restorable) or confirm dialog (permanent)
 - [ ] Empty state exists and points somewhere
 - [ ] Copy sounds like a friend, starts buttons with verbs
 - [ ] Pattern documented here if it's new
