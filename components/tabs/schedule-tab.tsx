@@ -35,7 +35,6 @@ interface ScheduleTabProps {
   onReopenPoll: (meetingId: string) => void
   prefillBook?: SuggestedBook | null
   onPrefillUsed?: () => void
-  onSuggestionScheduled?: (bookId: string) => void
 }
 
 export function ScheduleTab({ 
@@ -50,7 +49,6 @@ export function ScheduleTab({
   onReopenPoll,
   prefillBook,
   onPrefillUsed,
-  onSuggestionScheduled,
 }: ScheduleTabProps) {
   const [showForm, setShowForm] = useState(false)
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null)
@@ -122,11 +120,9 @@ export function ScheduleTab({
         time: timeValue,
         location: formData.location,
         dateOptions,
+        suggestionId: prefillBookId ?? undefined,
       })
-      if (prefillBookId) {
-        onSuggestionScheduled?.(prefillBookId)
-        setPrefillBookId(null)
-      }
+      setPrefillBookId(null)
     }
     setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
     setDateMode("single")
@@ -201,9 +197,11 @@ export function ScheduleTab({
       <AlertDialog open={!!meetingToDelete} onOpenChange={(open) => !open && setMeetingToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this meeting?</AlertDialogTitle>
+            <AlertDialogTitle>Remove this meeting?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The meeting and all RSVPs will be permanently removed.
+              {meetings.find((m) => m.id === meetingToDelete)?.suggestionId
+                ? "The meeting and its RSVPs will be removed. The book goes back to the Vote tab with all its votes."
+                : "The meeting and all RSVPs will be permanently removed."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

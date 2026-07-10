@@ -5,16 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search, Star, Share2 } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
@@ -126,7 +116,6 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const [formData, setFormData] = useState({ title: "", author: "" })
   const [searchResults, setSearchResults] = useState<BookMatch[]>([])
   const [selectedBook, setSelectedBook] = useState<BookMatch | null>(null)
-  const [bookToDelete, setBookToDelete] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string } | null>(null)
@@ -207,13 +196,6 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
     setShowForm(false)
   }
 
-  const handleConfirmDelete = () => {
-    if (bookToDelete) {
-      onDelete(bookToDelete)
-      setBookToDelete(null)
-    }
-  }
-
   const handleShare = async (book: SuggestedBook) => {
     const title = `Vote for ${book.title}! 📚`
     const text = `${book.title} by ${book.author} was suggested — please vote for it! 📚🍷`
@@ -253,22 +235,6 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
         author={detailBook?.author ?? ""}
         coverUrl={detailBook?.coverUrl}
       />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!bookToDelete} onOpenChange={(open) => !open && setBookToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this book?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The book suggestion and all its votes will be permanently removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Header */}
       <div className="text-center mb-6">
@@ -457,12 +423,12 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                 key={book.id}
                 className={`transition-all relative ${isLeading ? 'ring-2 ring-primary bg-primary/5' : ''}`}
               >
-                {/* Delete Button */}
+                {/* Delete Button (undo toast handles mistakes, no confirm) */}
                 <Button
                   variant="ghost"
                   size="icon"
                   className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
-                  onClick={() => setBookToDelete(book.id)}
+                  onClick={() => onDelete(book.id)}
                 >
                   <X className="h-4 w-4" />
                 </Button>

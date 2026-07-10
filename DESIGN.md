@@ -35,7 +35,7 @@ hex/oklch value in a component.
 2. **One primary action per view.** The big full-width button ("Suggest a Book") is the hero; everything else is quieter.
 3. **Show, don't hide** — but only info. Descriptions, chips, ratings live inline. *Actions* are the exception: rare/destructive actions go in the overflow menu (see Card action bar).
 4. **No dead ends.** Every empty state says what to do next. Every card has a clear action.
-5. **Destructive actions always confirm** via `AlertDialog`, and always live behind the "…" menu — never a floating X on the card.
+5. **Destructive actions are always recoverable or confirmed.** Prefer instant-delete + an 8s Undo toast (suggestion X) when the data can be restored; use an `AlertDialog` confirm when it can't be fully undone (meeting delete — though a poll-born meeting returns its book + votes to the Vote tab). Never both.
 
 ## Card anatomy
 
@@ -63,10 +63,11 @@ is read-only-ish (meeting chips tap to edit). **Action bar** is always last.
 Instagram-style strip that keeps actions tidy instead of a wrapping pile of
 labeled buttons:
 
-- **Row of icon actions** (`ghost`, `rounded-full`, 48px tall, 28px icons at
-  stroke 2 — match Instagram's icon weight; anything thinner reads as tiny).
+- **Row of icon actions** (`ghost`, `rounded-full`, 44px tall, 24px icons at
+  stroke 2 — keep Instagram's icon weight; anything thinner reads as tiny.
+  We shipped 28px first and the owner found it too big, 2026-07).
   Beware: the shadcn `Button` forces `size-4` on child svgs, so icon size
-  classes need `!` (e.g. `!h-7 !w-7`) or they silently render at 16px.
+  classes need `!` (e.g. `!h-6 !w-6`) or they silently render at 16px.
   Order = importance: engage (♥ vote) → act (📅 schedule) → spread (↗ share).
 - **Active state:** filled icon + `text-primary` (like a liked heart). Counts
   sit beside the icon (`♥ 3`).
@@ -75,7 +76,9 @@ labeled buttons:
   for the interactive zone (RSVP / poll sections).
 - **Caption:** optional social-proof line beneath ("Voted by Emily, Sarah") —
   the IG "liked by" pattern.
-- Icon-only on the smallest screens, icon + label from `sm:` up.
+- **Labels always visible** next to icons, all screen sizes (owner preference,
+  2026-07 — icon-only felt cryptic). Keep labels to one short word so the
+  three-action bar still fits a 375px card; new actions must check this.
 - **Delete stays as the top-right X** (owner preference, 2026-07). If a card
   ever needs 3+ hidden actions, revisit a `⋯` overflow menu — until then,
   don't hide actions one level deep.
@@ -127,7 +130,7 @@ after a date wins.
 - [ ] Works at 375px; tap targets ≥ 44px
 - [ ] Uses tokens (no raw colors), serif only for titles
 - [ ] Card follows the anatomy above; actions live in the action bar
-- [ ] Destructive path = overflow menu + confirm dialog
+- [ ] Destructive path = undo toast (restorable) or confirm dialog (permanent)
 - [ ] Empty state exists and points somewhere
 - [ ] Copy sounds like a friend, starts buttons with verbs
 - [ ] Pattern documented here if it's new

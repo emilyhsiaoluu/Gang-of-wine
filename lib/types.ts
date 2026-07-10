@@ -28,6 +28,9 @@ export interface Meeting {
   rsvps: RSVP[]
   wineTheme?: string
   dateOptions?: DateOption[]
+  /** Set when the meeting was scheduled from a Vote-tab suggestion; deleting
+   *  the meeting returns that suggestion (votes intact) to the Vote tab. */
+  suggestionId?: string
 }
 
 export interface SuggestedBook extends Book {

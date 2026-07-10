@@ -6,6 +6,7 @@ import { ScheduleTab } from "@/components/tabs/schedule-tab"
 import { VoteTab } from "@/components/tabs/vote-tab"
 import { ArchiveTab } from "@/components/tabs/archive-tab"
 import { Wine, BookOpen, Calendar, Heart, Archive } from "lucide-react"
+import { toast } from "sonner"
 import type { Meeting, SuggestedBook, Vote } from "@/lib/types"
 import {
   addMeeting,
@@ -15,6 +16,7 @@ import {
   fetchAppData,
   finalizeMeetingDate,
   reopenDatePoll,
+  restoreSuggestion,
   toggleDateVote,
   toggleVote,
   updateMeeting,
@@ -177,6 +179,14 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
     return { upcomingMeetings: upcoming, pastMeetings: past }
   }, [meetings, todayStartMs])
 
+  // A suggestion that's been scheduled stays in the database (votes and all)
+  // but is hidden from the Vote tab while its meeting exists. Deleting the
+  // meeting makes the book reappear, nothing lost.
+  const visibleSuggestions = useMemo(() => {
+    const scheduledIds = new Set(meetings.map((m) => m.suggestionId).filter(Boolean))
+    return suggestions.filter((s) => !scheduledIds.has(s.id))
+  }, [suggestions, meetings])
+
   const handleAddMeeting = async (meeting: Omit<Meeting, "id" | "rsvps">) => {
     track("meeting_scheduled", { book_title: meeting.book.title, date: meeting.date, location: meeting.location })
     try {
@@ -276,9 +286,28 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
   }
 
   const handleDeleteSuggestion = async (bookId: string) => {
+    const book = suggestions.find((s) => s.id === bookId)
+    const voterNames = votes.filter((v) => v.bookId === bookId).map((v) => v.voterName)
     try {
       await deleteSuggestion(bookId)
       await refreshData()
+      if (book) {
+        toast(`"${book.title}" removed`, {
+          duration: 8000,
+          action: {
+            label: "Undo",
+            onClick: async () => {
+              try {
+                await restoreSuggestion(book, voterNames)
+                await refreshData()
+              } catch (error) {
+                console.error("Failed restoring suggestion:", error)
+                setErrorMessage("Could not restore the suggestion. Please try again.")
+              }
+            },
+          },
+        })
+      }
     } catch (error) {
       console.error("Failed deleting suggestion:", error)
       setErrorMessage("Could not delete suggestion. Please try again.")
@@ -382,13 +411,12 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
               onReopenPoll={handleReopenPoll}
               prefillBook={scheduleFormBook}
               onPrefillUsed={() => setScheduleFormBook(null)}
-              onSuggestionScheduled={handleDeleteSuggestion}
             />
           </TabsContent>
 
           <TabsContent value="vote" className="mt-0">
             <VoteTab
-              suggestions={suggestions}
+              suggestions={visibleSuggestions}
               votes={votes}
               userName={userName}
               onVote={handleVote}
