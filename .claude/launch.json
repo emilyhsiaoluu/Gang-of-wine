@@ -6,7 +6,7 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["dev"],
       "port": 3000,
-      "cwd": "/Users/emilyhsiao/Documents/gang-of-wine"
+      "cwd": "/Users/emilyhsiao/My Drive/Athena/02 Projects/Coding Apps/gang-of-wine"
     }
   ]
 }
