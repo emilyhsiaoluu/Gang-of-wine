@@ -57,6 +57,19 @@ A mobile-first book club app for a small group of friends ("Gang of Wine Moms").
 
 **Why:** The owner's friends use prod. Test on the preview URL, never dogfood on prod.
 
+## Database safety (learned from the 2026-07-10 outage)
+
+The preview deployment and production share ONE Supabase database. Preview is
+not a sandbox. Two hard rules:
+
+1. **Code before data.** If a feature changes what the data can look like
+   (new column, nullable field, new "kind" of row), the code that understands
+   the new shape must be merged to production BEFORE any new-shape data is
+   created. Old prod code + new-shape data = prod crashes for everyone.
+2. **Test with demo mode, not real data.** `?demo=1` runs the app on
+   in-memory sample data and never touches Supabase. Use it for all UI
+   testing — and tell the owner to use it too when asking her to try things.
+
 ## Design + UX rules
 
 The owner wants Claude to be a co-designer, not just a code executor. Before implementing any UI change:
