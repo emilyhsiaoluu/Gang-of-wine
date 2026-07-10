@@ -48,6 +48,16 @@ Each workstream below closes one link in that chain.
 
 ---
 
+## Pre-flight check (owner or implementing session, 5 min)
+
+PRs #25/#26 shipped SQL migration files (`sql/2026-07-date-poll.sql`,
+`sql/2026-07-suggestion-link.sql`). The code tolerates the columns being
+absent, but date polls and return-book-on-meeting-delete silently degrade
+without them. Verify in Supabase dashboard → Table Editor → `meetings`
+table: columns `date_options` and `suggestion_id` should exist. If missing,
+run both SQL files in the Supabase SQL editor (safe order — the code that
+understands them is already live, per the code-before-data rule).
+
 ## Workstream A — Build-time guard (code, do first, ~30 min)
 
 Never ship a bundle that can't reach the database.
@@ -113,8 +123,17 @@ checks invariants and exits 1 on violation:
 - every meeting date parses (guards the null-date crash class)
 - every vote references an existing suggestion
 
+UX lint (same Playwright run, demo mode): smoke tests catch "broken";
+these catch "bad." At a 375px viewport, on each tab:
+
+- every visible interactive element (button, link, tappable row) has a
+  bounding box of at least 44x44px — flags cramped tap targets
+  automatically (CLAUDE.md design rule, now enforced by a robot)
+- `document.documentElement.scrollWidth <= window.innerWidth` — no
+  horizontal overflow on any tab
+
 **Accept when:** the workflow runs green on main, and deliberately breaking
-an assertion produces a failure email.
+an assertion (e.g. shrinking a button below 44px) produces a failure email.
 
 ## Workstream E — Daily health dashboard (owner task w/ recipe, ~20 min)
 
@@ -125,7 +144,10 @@ PostHog → New dashboard, name it **“GoW Daily Health”**, tiles:
 3. Trend: `book_suggested`, `book_vote_toggled`, `rsvp_submitted` (7 days)
 4. `data_load_failed` + `$exception` count (7 days) — should be zero;
    any bar here = investigate
-5. Link tile to Session Replay filtered to sessions with errors
+5. `$rageclick` count (7 days) — PostHog autocapture already flags rapid
+   repeated taps on the same spot; a built-in "this button is frustrating
+   someone" detector. Bars here = UX bug even if nothing is "broken."
+6. Link tile to Session Replay filtered to sessions with errors
 
 Morning routine: UptimeRobot app says up/down; PostHog dashboard says
 who's using what and whether anything failed quietly.
