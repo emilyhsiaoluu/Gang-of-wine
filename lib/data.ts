@@ -10,6 +10,14 @@ import { demoMeetings, demoSuggestions, demoVotes } from "@/lib/demo-data"
 const isDemoMode = () =>
   typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo")
 
+// Staging shares a Supabase project with other apps (no separate free tier
+// project available), so its tables are prefixed to avoid name collisions —
+// e.g. "gow_suggestions" instead of "suggestions". Set
+// NEXT_PUBLIC_TABLE_PREFIX="gow_" on the staging/preview environment only;
+// production leaves it unset and keeps the original unprefixed table names.
+const TABLE_PREFIX = process.env.NEXT_PUBLIC_TABLE_PREFIX ?? ""
+const table = (name: string) => `${TABLE_PREFIX}${name}`
+
 let demoState: { meetings: Meeting[]; suggestions: SuggestedBook[]; votes: Vote[] } | null = null
 
 function getDemoState() {
@@ -96,10 +104,10 @@ export async function fetchAppData(): Promise<AppData> {
   }
   const supabase = getSupabaseClient()
   const [suggestionsRes, votesRes, meetingsRes, rsvpsRes] = await Promise.all([
-    supabase.from("suggestions").select("*").order("created_at", { ascending: true }),
-    supabase.from("votes").select("*"),
-    supabase.from("meetings").select("*").order("date", { ascending: true }),
-    supabase.from("meeting_rsvps").select("*"),
+    supabase.from(table("suggestions")).select("*").order("created_at", { ascending: true }),
+    supabase.from(table("votes")).select("*"),
+    supabase.from(table("meetings")).select("*").order("date", { ascending: true }),
+    supabase.from(table("meeting_rsvps")).select("*"),
   ])
 
   if (suggestionsRes.error) throw suggestionsRes.error
@@ -148,7 +156,7 @@ export async function addSuggestion(input: Omit<SuggestedBook, "id" | "suggested
     return
   }
   const supabase = getSupabaseClient()
-  const { error } = await supabase.from("suggestions").insert({
+  const { error } = await supabase.from(table("suggestions")).insert({
     title: input.title,
     author: input.author,
     description: input.description ?? null,
@@ -166,7 +174,7 @@ export async function deleteSuggestion(bookId: string) {
     return
   }
   const supabase = getSupabaseClient()
-  const { error } = await supabase.from("suggestions").delete().eq("id", bookId)
+  const { error } = await supabase.from(table("suggestions")).delete().eq("id", bookId)
   if (error) throw error
 }
 
@@ -182,7 +190,7 @@ export async function restoreSuggestion(book: SuggestedBook, voterNames: string[
   }
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
-    .from("suggestions")
+    .from(table("suggestions"))
     .insert({
       title: book.title,
       author: book.author,
@@ -196,7 +204,7 @@ export async function restoreSuggestion(book: SuggestedBook, voterNames: string[
 
   if (voterNames.length > 0) {
     const { error: votesError } = await supabase
-      .from("votes")
+      .from(table("votes"))
       .insert(voterNames.map((voterName) => ({ suggestion_id: data.id, voter_name: voterName })))
     if (votesError) throw votesError
   }
@@ -212,7 +220,7 @@ export async function toggleVote(bookId: string, voterName: string) {
   }
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
-    .from("votes")
+    .from(table("votes"))
     .select("suggestion_id,voter_name")
     .eq("suggestion_id", bookId)
     .eq("voter_name", voterName)
@@ -222,7 +230,7 @@ export async function toggleVote(bookId: string, voterName: string) {
 
   if (data) {
     const { error: deleteError } = await supabase
-      .from("votes")
+      .from(table("votes"))
       .delete()
       .eq("suggestion_id", bookId)
       .eq("voter_name", voterName)
@@ -230,7 +238,7 @@ export async function toggleVote(bookId: string, voterName: string) {
     return
   }
 
-  const { error: insertError } = await supabase.from("votes").insert({
+  const { error: insertError } = await supabase.from(table("votes")).insert({
     suggestion_id: bookId,
     voter_name: voterName,
   })
@@ -254,12 +262,12 @@ export async function addMeeting(meeting: Omit<Meeting, "id" | "rsvps">) {
     date_options: meeting.dateOptions ?? null,
   }
   if (meeting.suggestionId) row.suggestion_id = meeting.suggestionId
-  const { error } = await supabase.from("meetings").insert(row)
+  const { error } = await supabase.from(table("meetings")).insert(row)
   // If the suggestion_id migration hasn't run yet, retry without the link
   // rather than blocking meeting creation entirely.
   if (error && meeting.suggestionId && /suggestion_id/.test(error.message)) {
     delete row.suggestion_id
-    const { error: retryError } = await supabase.from("meetings").insert(row)
+    const { error: retryError } = await supabase.from(table("meetings")).insert(row)
     if (retryError) throw retryError
     return
   }
@@ -278,7 +286,7 @@ export async function toggleDateVote(meetingId: string, optionId: string, voterN
   }
   const supabase = getSupabaseClient()
   const { data, error } = await supabase
-    .from("meetings")
+    .from(table("meetings"))
     .select("date_options")
     .eq("id", meetingId)
     .single()
@@ -294,7 +302,7 @@ export async function toggleDateVote(meetingId: string, optionId: string, voterN
   })
 
   const { error: updateError } = await supabase
-    .from("meetings")
+    .from(table("meetings"))
     .update({ date_options: updated })
     .eq("id", meetingId)
   if (updateError) throw updateError
@@ -309,7 +317,7 @@ export async function finalizeMeetingDate(meetingId: string, date: string) {
     return
   }
   const supabase = getSupabaseClient()
-  const { error } = await supabase.from("meetings").update({ date }).eq("id", meetingId)
+  const { error } = await supabase.from(table("meetings")).update({ date }).eq("id", meetingId)
   if (error) throw error
 }
 
@@ -322,7 +330,7 @@ export async function reopenDatePoll(meetingId: string) {
     return
   }
   const supabase = getSupabaseClient()
-  const { error } = await supabase.from("meetings").update({ date: null }).eq("id", meetingId)
+  const { error } = await supabase.from(table("meetings")).update({ date: null }).eq("id", meetingId)
   if (error) throw error
 }
 
@@ -342,7 +350,7 @@ export async function updateMeeting(
   if (updates.location !== undefined) payload.location = updates.location
   if (updates.wineTheme !== undefined) payload.wine_theme = updates.wineTheme
 
-  const { error } = await supabase.from("meetings").update(payload).eq("id", meetingId)
+  const { error } = await supabase.from(table("meetings")).update(payload).eq("id", meetingId)
   if (error) throw error
 }
 
@@ -353,7 +361,7 @@ export async function deleteMeeting(meetingId: string) {
     return
   }
   const supabase = getSupabaseClient()
-  const { error } = await supabase.from("meetings").delete().eq("id", meetingId)
+  const { error } = await supabase.from(table("meetings")).delete().eq("id", meetingId)
   if (error) throw error
 }
 
@@ -371,7 +379,7 @@ export async function upsertRsvp(
     return
   }
   const supabase = getSupabaseClient()
-  const { error } = await supabase.from("meeting_rsvps").upsert(
+  const { error } = await supabase.from(table("meeting_rsvps")).upsert(
     {
       meeting_id: meetingId,
       rsvp_name: rsvpName,
