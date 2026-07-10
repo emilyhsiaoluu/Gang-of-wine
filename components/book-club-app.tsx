@@ -78,6 +78,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
         }
         return String(error)
       })()
+      track("data_load_failed", { detail })
       setErrorMessage(`Could not load book club data from Supabase: ${detail}`)
     } finally {
       setIsLoading(false)
