@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import { table } from "@/lib/table"
 
 // Health check for uptime monitoring (e.g. UptimeRobot pings this URL).
 // Returns 200 when the app can reach Supabase and read data, 503 otherwise —
@@ -15,7 +16,7 @@ export async function GET() {
 
   try {
     const supabase = createClient(url, key)
-    const { error } = await supabase.from("meetings").select("id").limit(1)
+    const { error } = await supabase.from(table("meetings")).select("id").limit(1)
     if (error) throw new Error(error.message)
     return Response.json({ ok: true })
   } catch (e) {
