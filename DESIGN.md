@@ -63,10 +63,11 @@ is read-only-ish (meeting chips tap to edit). **Action bar** is always last.
 Instagram-style strip that keeps actions tidy instead of a wrapping pile of
 labeled buttons:
 
-- **Row of icon actions** (`ghost`, `rounded-full`, 48px tall, 28px icons at
-  stroke 2 — match Instagram's icon weight; anything thinner reads as tiny).
+- **Row of icon actions** (`ghost`, `rounded-full`, 44px tall, 24px icons at
+  stroke 2 — keep Instagram's icon weight; anything thinner reads as tiny.
+  We shipped 28px first and the owner found it too big, 2026-07).
   Beware: the shadcn `Button` forces `size-4` on child svgs, so icon size
-  classes need `!` (e.g. `!h-7 !w-7`) or they silently render at 16px.
+  classes need `!` (e.g. `!h-6 !w-6`) or they silently render at 16px.
   Order = importance: engage (♥ vote) → act (📅 schedule) → spread (↗ share).
 - **Active state:** filled icon + `text-primary` (like a liked heart). Counts
   sit beside the icon (`♥ 3`).

@@ -48,6 +48,7 @@ type MeetingRow = {
   location: string
   wine_theme: string | null
   date_options?: DateOption[] | null
+  suggestion_id?: string | null
 }
 
 type MeetingRsvpRow = {
@@ -130,6 +131,7 @@ export async function fetchAppData(): Promise<AppData> {
     rsvps: rsvpsByMeeting.get(row.id) ?? [],
     wineTheme: row.wine_theme ?? undefined,
     dateOptions: row.date_options ?? undefined,
+    suggestionId: row.suggestion_id ?? undefined,
   }))
 
   return { meetings, suggestions, votes }
@@ -166,6 +168,38 @@ export async function deleteSuggestion(bookId: string) {
   const supabase = getSupabaseClient()
   const { error } = await supabase.from("suggestions").delete().eq("id", bookId)
   if (error) throw error
+}
+
+// Re-inserts a deleted suggestion and its votes (the "Undo" in the removal
+// toast). The suggestion gets a fresh id; votes are re-attached to it.
+export async function restoreSuggestion(book: SuggestedBook, voterNames: string[]) {
+  if (isDemoMode()) {
+    const state = getDemoState()
+    const id = `demo-sug-${Date.now()}`
+    state.suggestions.push({ ...book, id })
+    voterNames.forEach((voterName) => state.votes.push({ bookId: id, voterName }))
+    return
+  }
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from("suggestions")
+    .insert({
+      title: book.title,
+      author: book.author,
+      description: book.description ?? null,
+      cover_url: book.coverUrl ?? null,
+      suggested_by: book.suggestedBy,
+    })
+    .select("id")
+    .single()
+  if (error) throw error
+
+  if (voterNames.length > 0) {
+    const { error: votesError } = await supabase
+      .from("votes")
+      .insert(voterNames.map((voterName) => ({ suggestion_id: data.id, voter_name: voterName })))
+    if (votesError) throw votesError
+  }
 }
 
 export async function toggleVote(bookId: string, voterName: string) {
@@ -209,7 +243,7 @@ export async function addMeeting(meeting: Omit<Meeting, "id" | "rsvps">) {
     return
   }
   const supabase = getSupabaseClient()
-  const { error } = await supabase.from("meetings").insert({
+  const row: Record<string, unknown> = {
     book_title: meeting.book.title,
     book_author: meeting.book.author,
     book_cover_url: meeting.book.coverUrl ?? null,
@@ -218,7 +252,17 @@ export async function addMeeting(meeting: Omit<Meeting, "id" | "rsvps">) {
     location: meeting.location,
     wine_theme: meeting.wineTheme ?? null,
     date_options: meeting.dateOptions ?? null,
-  })
+  }
+  if (meeting.suggestionId) row.suggestion_id = meeting.suggestionId
+  const { error } = await supabase.from("meetings").insert(row)
+  // If the suggestion_id migration hasn't run yet, retry without the link
+  // rather than blocking meeting creation entirely.
+  if (error && meeting.suggestionId && /suggestion_id/.test(error.message)) {
+    delete row.suggestion_id
+    const { error: retryError } = await supabase.from("meetings").insert(row)
+    if (retryError) throw retryError
+    return
+  }
   if (error) throw error
 }
 

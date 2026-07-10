@@ -27,6 +27,7 @@ export const demoMeetings: Meeting[] = [
       { name: "Sarah", response: "yes" },
       { name: "Jess", response: "maybe" },
     ],
+    suggestionId: "demo-sug-3",
   },
   {
     id: "demo-meeting-2",
@@ -81,9 +82,22 @@ export const demoSuggestions: SuggestedBook[] = [
     suggestedBy: "Sarah",
     createdAt: "2026-07-03T12:00:00Z",
   },
+  {
+    // Scheduled suggestion: hidden from the Vote tab while its meeting
+    // exists; deleting that meeting brings it back, votes intact.
+    id: "demo-sug-3",
+    title: "Tomorrow, and Tomorrow, and Tomorrow",
+    author: "Gabrielle Zevin",
+    coverUrl: "https://covers.openlibrary.org/b/title/Tomorrow%2C%20and%20Tomorrow%2C%20and%20Tomorrow-M.jpg",
+    suggestedBy: "Emily",
+    createdAt: "2026-06-20T12:00:00Z",
+  },
 ]
 
 export const demoVotes: Vote[] = [
+  { bookId: "demo-sug-3", voterName: "Emily" },
+  { bookId: "demo-sug-3", voterName: "Sarah" },
+  { bookId: "demo-sug-3", voterName: "Jess" },
   { bookId: "demo-sug-1", voterName: "Jess" },
   { bookId: "demo-sug-1", voterName: "Emily" },
   { bookId: "demo-sug-2", voterName: "Sarah" },

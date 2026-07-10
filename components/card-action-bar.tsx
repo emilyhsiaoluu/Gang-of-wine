@@ -36,15 +36,15 @@ export function CardActionBar({ actions, caption }: CardActionBarProps) {
             onClick={onClick}
             aria-label={label}
             aria-pressed={active}
-            className={`h-12 px-3 gap-2 rounded-full ${
+            className={`h-11 px-3 gap-1.5 rounded-full ${
               active
                 ? "text-primary hover:text-primary hover:bg-primary/10"
                 : "text-foreground hover:text-foreground"
             }`}
           >
-            <Icon className={`!h-7 !w-7 ${active ? "fill-current" : ""}`} strokeWidth={2} />
+            <Icon className={`!h-6 !w-6 ${active ? "fill-current" : ""}`} strokeWidth={2} />
             {count != null && count !== 0 && (
-              <span className="text-lg font-medium tabular-nums">{count}</span>
+              <span className="text-base font-medium tabular-nums">{count}</span>
             )}
             <span className="sr-only sm:not-sr-only sm:text-sm sm:font-medium">{label}</span>
           </Button>
