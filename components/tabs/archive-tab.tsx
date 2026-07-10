@@ -153,7 +153,7 @@ export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              className="absolute top-2 right-2 h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               onClick={() => setMeetingToDelete(meeting.id)}
             >
               <X className="h-4 w-4" />
