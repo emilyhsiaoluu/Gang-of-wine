@@ -270,7 +270,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                   setShowForm(false)
                   resetSearchState()
                 }}
-                className="h-8 w-8"
+                className="h-11 w-11"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -427,7 +427,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
+                  className="absolute top-2 right-2 h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
                   onClick={() => onDelete(book.id)}
                 >
                   <X className="h-4 w-4" />

@@ -491,7 +491,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
+        className="absolute top-2 right-2 h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
         onClick={onDelete}
       >
         <X className="h-4 w-4" />
@@ -526,14 +526,14 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
             {/* Tappable meeting details */}
             <div className="flex flex-wrap gap-2 text-sm mb-4">
               {isPolling ? (
-                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">
+                <span className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-full bg-primary/10 text-primary font-medium">
                   <Vote className="h-4 w-4" />
                   Date poll open
                 </span>
               ) : (
                 <button
                   onClick={onEdit}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Calendar className="h-4 w-4" />
                   {formatDate(meeting.date)}
@@ -542,7 +542,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
               {!isPolling && (
                 <button
                   onClick={onEdit}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Clock className="h-4 w-4" />
                   {formatTime(meeting.time)}
@@ -550,7 +550,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
               )}
               <button
                 onClick={onEdit}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <MapPin className="h-4 w-4" />
                 {meeting.location}
@@ -584,7 +584,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                       variant={currentRsvp?.response === "yes" ? "default" : "outline"}
                       onClick={() => handleRSVP("yes")}
                       disabled={!rsvpName.trim()}
-                      className="h-9"
+                      className="h-11 min-w-[44px]"
                     >
                       Yes
                     </Button>
@@ -593,7 +593,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                       variant={currentRsvp?.response === "maybe" ? "default" : "outline"}
                       onClick={() => handleRSVP("maybe")}
                       disabled={!rsvpName.trim()}
-                      className="h-9"
+                      className="h-11 min-w-[44px]"
                     >
                       Maybe
                     </Button>
@@ -602,7 +602,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                       variant={currentRsvp?.response === "no" ? "default" : "outline"}
                       onClick={() => handleRSVP("no")}
                       disabled={!rsvpName.trim()}
-                      className="h-9"
+                      className="h-11 min-w-[44px]"
                     >
                       No
                     </Button>

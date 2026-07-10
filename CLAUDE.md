@@ -70,6 +70,35 @@ not a sandbox. Two hard rules:
    in-memory sample data and never touches Supabase. Use it for all UI
    testing — and tell the owner to use it too when asking her to try things.
 
+## Environment variables (learned from the second 2026-07-10 outage)
+
+`NEXT_PUBLIC_*` vars are baked into the JS bundle **at build time**. Deleting
+one in Vercel doesn't break the running deployment — it breaks the NEXT
+deploy, silently. That's exactly how prod went down for ~15 hours on Jul 9–10:
+the Supabase vars vanished during staging setup, and the next merge shipped a
+bundle with no database credentials.
+
+Inventory (names + scopes only — values live in Vercel, never in the repo):
+
+| Variable | Scope | Purpose |
+|----------|-------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Production | Prod database URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production | Prod public anon key |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Production + Preview | Analytics |
+| `NEXT_PUBLIC_POSTHOG_HOST` | Production + Preview | Analytics |
+| `NEXT_PUBLIC_TABLE_PREFIX` | Preview/staging only (`gow_`) | Staging table prefix — must NEVER be set on Production |
+
+Hard rules:
+
+1. **Never delete a Vercel env var.** Edit or add; deletion is how outage #2
+   happened. Any env change gets noted in the PR/chat.
+2. **After any env change or merge to main:** redeploy, then
+   `curl https://gang-of-wine.vercel.app/api/health` and confirm 200 before
+   ending the session.
+3. New env vars get added to this table and to `.env.example` (name only).
+
+See `docs/RELIABILITY_PLAN.md` for the monitoring/alerting/evals work order.
+
 ## Design + UX rules
 
 The owner wants Claude to be a co-designer, not just a code executor. Before implementing any UI change:

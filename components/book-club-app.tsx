@@ -78,6 +78,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
         }
         return String(error)
       })()
+      track("data_load_failed", { detail })
       setErrorMessage(`Could not load book club data from Supabase: ${detail}`)
     } finally {
       setIsLoading(false)
@@ -344,7 +345,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
           </div>
           <button
             onClick={onEditName}
-            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/15"
+            className="inline-flex items-center text-sm font-medium text-primary hover:text-primary/80 transition-colors px-4 min-h-[44px] rounded-full bg-primary/10 hover:bg-primary/15"
           >
             {userName}
           </button>
@@ -363,7 +364,7 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
             </div>
             <button
               onClick={loadData}
-              className="shrink-0 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+              className="shrink-0 rounded-md border border-red-300 bg-white px-3 min-h-[44px] text-xs font-medium text-red-700 hover:bg-red-100"
             >
               Retry
             </button>

@@ -16,3 +16,7 @@ node_modules
 .DS_Store
 *.tsbuildinfo
 .vercel
+
+# Playwright
+playwright-report/
+test-results/
