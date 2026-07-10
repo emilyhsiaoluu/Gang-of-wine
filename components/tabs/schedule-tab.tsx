@@ -15,10 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Clock, Calendar, X, Share2 } from "lucide-react"
+import { MapPin, Clock, Calendar, X, Share2, Vote, Plus } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
-import type { Meeting, SuggestedBook } from "@/lib/types"
+import { CardActionBar } from "@/components/card-action-bar"
+import { DatePoll } from "@/components/date-poll"
+import type { DateOption, Meeting, SuggestedBook } from "@/lib/types"
 import { TimePicker } from "@/components/time-picker"
 
 interface ScheduleTabProps {
@@ -28,6 +30,9 @@ interface ScheduleTabProps {
   onRSVP: (meetingId: string, response: "yes" | "no" | "maybe", rsvpName: string) => void
   onDeleteMeeting: (meetingId: string) => void
   onUpdateMeeting: (meetingId: string, updates: Partial<Omit<Meeting, "id" | "rsvps" | "book">>) => void
+  onToggleDateVote: (meetingId: string, optionId: string) => void
+  onFinalizeDate: (meetingId: string, date: string) => void
+  onReopenPoll: (meetingId: string) => void
   prefillBook?: SuggestedBook | null
   onPrefillUsed?: () => void
   onSuggestionScheduled?: (bookId: string) => void
@@ -40,6 +45,9 @@ export function ScheduleTab({
   onRSVP, 
   onDeleteMeeting,
   onUpdateMeeting,
+  onToggleDateVote,
+  onFinalizeDate,
+  onReopenPoll,
   prefillBook,
   onPrefillUsed,
   onSuggestionScheduled,
@@ -55,7 +63,13 @@ export function ScheduleTab({
     time: "",
     location: "",
   })
+  const [dateMode, setDateMode] = useState<"single" | "poll">("single")
+  const [pollDates, setPollDates] = useState<string[]>(["", ""])
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null)
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false)
+
+  const editingMeeting = editingMeetingId ? meetings.find((m) => m.id === editingMeetingId) : null
+  const canReopenPoll = !!editingMeeting?.date && (editingMeeting.dateOptions?.length ?? 0) > 0
 
   // Handle prefill from Vote tab
   useEffect(() => {
@@ -78,37 +92,46 @@ export function ScheduleTab({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const timeValue = formData.time || "TBD"
-    
-    if (formData.bookTitle && formData.bookAuthor && formData.date && timeValue && formData.location) {
-      if (editingMeetingId) {
-        // Updating existing meeting
-        onUpdateMeeting(editingMeetingId, {
-          date: formData.date,
-          time: timeValue,
-          location: formData.location,
-        })
-        setEditingMeetingId(null)
-      } else {
-        // Adding new meeting
-        onAddMeeting({
-          book: {
-            id: `book-${Date.now()}`,
-            title: formData.bookTitle,
-            author: formData.bookAuthor,
-            coverUrl: formData.bookCoverUrl || `https://covers.openlibrary.org/b/title/${encodeURIComponent(formData.bookTitle)}-M.jpg`,
-          },
-          date: formData.date,
-          time: timeValue,
-          location: formData.location,
-        })
-        if (prefillBookId) {
-          onSuggestionScheduled?.(prefillBookId)
-          setPrefillBookId(null)
-        }
+    const isPollMode = dateMode === "poll" && !editingMeetingId
+    const validPollDates = [...new Set(pollDates.filter(Boolean))]
+
+    if (!formData.bookTitle || !formData.bookAuthor || !formData.location) return
+    if (isPollMode ? validPollDates.length < 2 : !formData.date && !editingMeetingId) return
+
+    if (editingMeetingId) {
+      // Updating existing meeting. A polling meeting has no date yet — leave
+      // it out of the update so the poll stays open.
+      onUpdateMeeting(editingMeetingId, {
+        ...(formData.date ? { date: formData.date } : {}),
+        time: timeValue,
+        location: formData.location,
+      })
+      setEditingMeetingId(null)
+    } else {
+      const dateOptions: DateOption[] | undefined = isPollMode
+        ? validPollDates.sort().map((date, i) => ({ id: `opt-${Date.now()}-${i}`, date, voters: [] }))
+        : undefined
+      onAddMeeting({
+        book: {
+          id: `book-${Date.now()}`,
+          title: formData.bookTitle,
+          author: formData.bookAuthor,
+          coverUrl: formData.bookCoverUrl || `https://covers.openlibrary.org/b/title/${encodeURIComponent(formData.bookTitle)}-M.jpg`,
+        },
+        date: isPollMode ? "" : formData.date,
+        time: timeValue,
+        location: formData.location,
+        dateOptions,
+      })
+      if (prefillBookId) {
+        onSuggestionScheduled?.(prefillBookId)
+        setPrefillBookId(null)
       }
-      setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
-      setShowForm(false)
     }
+    setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
+    setDateMode("single")
+    setPollDates(["", ""])
+    setShowForm(false)
   }
 
   const handleEditMeeting = (meeting: Meeting) => {
@@ -121,12 +144,15 @@ export function ScheduleTab({
       location: meeting.location,
     })
     setEditingMeetingId(meeting.id)
+    setDateMode("single")
     setShowForm(true)
   }
 
   const handleCancelForm = () => {
     setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
     setEditingMeetingId(null)
+    setDateMode("single")
+    setPollDates(["", ""])
     setShowForm(false)
   }
 
@@ -145,6 +171,31 @@ export function ScheduleTab({
           <p className="text-muted-foreground">Edit time &amp; location by tapping on it</p>
         )}
       </div>
+
+      {/* Reopen Poll Confirmation Dialog */}
+      <AlertDialog open={showReopenConfirm} onOpenChange={setShowReopenConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reopen the date poll?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The meeting goes back to voting on dates. Everyone&apos;s previous availability
+              votes are kept — the gang can update them and a new date gets locked in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Never mind</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (editingMeetingId) onReopenPoll(editingMeetingId)
+                setShowReopenConfirm(false)
+                handleCancelForm()
+              }}
+            >
+              Reopen poll
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!meetingToDelete} onOpenChange={(open) => !open && setMeetingToDelete(null)}>
@@ -194,39 +245,134 @@ export function ScheduleTab({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  />
+              {/* Set a date vs. poll for dates */}
+              {!editingMeetingId && (
+                <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-muted">
+                  <button
+                    type="button"
+                    onClick={() => setDateMode("single")}
+                    className={`flex items-center justify-center gap-1.5 h-10 rounded-md text-sm font-medium transition-colors ${
+                      dateMode === "single" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Set a date
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDateMode("poll")}
+                    className={`flex items-center justify-center gap-1.5 h-10 rounded-md text-sm font-medium transition-colors ${
+                      dateMode === "poll" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Vote className="h-4 w-4" />
+                    Poll for dates
+                  </button>
                 </div>
+              )}
+
+              {dateMode === "poll" && !editingMeetingId ? (
                 <div className="space-y-2">
-                  <Label htmlFor="time">Time</Label>
-                  <TimePicker
-                    value={formData.time}
-                    onChange={(v) => setFormData({ ...formData, time: v })}
-                  />
+                  <Label>Date options (pick 2&ndash;4, the gang votes on availability)</Label>
+                  {pollDates.map((date, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        type="date"
+                        value={date}
+                        onChange={(e) => {
+                          const next = [...pollDates]
+                          next[i] = e.target.value
+                          setPollDates(next)
+                        }}
+                      />
+                      {pollDates.length > 2 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 flex-shrink-0 text-muted-foreground"
+                          onClick={() => setPollDates(pollDates.filter((_, j) => j !== i))}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {pollDates.length < 4 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setPollDates([...pollDates, ""])}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add another date
+                    </Button>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    placeholder="e.g., Emily's House"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Time</Label>
+                    <TimePicker
+                      value={formData.time}
+                      onChange={(v) => setFormData({ ...formData, time: v })}
+                    />
+                  </div>
                 </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  placeholder="e.g., Emily's House"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button type="submit">{editingMeetingId ? "Save Changes" : "Add Meeting"}</Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    !formData.bookTitle ||
+                    !formData.bookAuthor ||
+                    !formData.location ||
+                    (dateMode === "poll" && !editingMeetingId
+                      ? [...new Set(pollDates.filter(Boolean))].length < 2
+                      : !formData.date && !editingMeetingId)
+                  }
+                >
+                  {editingMeetingId ? "Save Changes" : dateMode === "poll" ? "Start Date Poll" : "Add Meeting"}
+                </Button>
                 <Button type="button" variant="outline" onClick={handleCancelForm}>
                   Cancel
                 </Button>
               </div>
+              {canReopenPoll && (
+                <div className="border-t border-border pt-3 mt-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-11 gap-1.5 text-primary hover:text-primary hover:bg-primary/10 -ml-3"
+                    onClick={() => setShowReopenConfirm(true)}
+                  >
+                    <Vote className="h-4 w-4" />
+                    Date no longer works? Reopen the poll
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
@@ -249,6 +395,8 @@ export function ScheduleTab({
             onRSVP={onRSVP}
             onDelete={() => setMeetingToDelete(meeting.id)}
             onEdit={() => handleEditMeeting(meeting)}
+            onToggleDateVote={(optionId) => onToggleDateVote(meeting.id, optionId)}
+            onFinalizeDate={(date) => onFinalizeDate(meeting.id, date)}
           />
         ))
       )}
@@ -262,13 +410,16 @@ interface MeetingCardProps {
   onRSVP: (meetingId: string, response: "yes" | "no" | "maybe", rsvpName: string) => void
   onDelete: () => void
   onEdit: () => void
+  onToggleDateVote: (optionId: string) => void
+  onFinalizeDate: (date: string) => void
 }
 
-function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCardProps) {
+function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDateVote, onFinalizeDate }: MeetingCardProps) {
   const [rsvpName, setRsvpName] = useState(userName)
   const [shareLabel, setShareLabel] = useState("Share")
   const [detailOpen, setDetailOpen] = useState(false)
   const currentRsvp = meeting.rsvps.find(r => r.name === rsvpName)
+  const isPolling = !meeting.date && (meeting.dateOptions?.length ?? 0) > 0
 
   const formatDate = (dateStr: string) => {
     // Check if it's already a formatted date string like "March 13th"
@@ -299,7 +450,9 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
   const handleShare = async () => {
     const title = `Book Club: ${meeting.book.title}`
-    const text = `Don't forget — book club is coming up! Tap to RSVP. 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)} at ${formatTime(meeting.time)}\n📍 ${meeting.location}`
+    const text = isPolling
+      ? `Help pick a date for our next book club! Tap to vote on what works for you. 🗳️📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📍 ${meeting.location}`
+      : `Don't forget — book club is coming up! Tap to RSVP. 📚🍷\n\n📖 ${meeting.book.title} by ${meeting.book.author}\n📅 ${formatDate(meeting.date)} at ${formatTime(meeting.time)}\n📍 ${meeting.location}`
 
     const shareUrl = new URL(window.location.origin)
     if (meeting.book.coverUrl) {
@@ -340,7 +493,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+        className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
         onClick={onDelete}
       >
         <X className="h-4 w-4" />
@@ -374,20 +527,29 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
 
             {/* Tappable meeting details */}
             <div className="flex flex-wrap gap-2 text-sm mb-4">
-              <button
-                onClick={onEdit}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Calendar className="h-4 w-4" />
-                {formatDate(meeting.date)}
-              </button>
-              <button
-                onClick={onEdit}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Clock className="h-4 w-4" />
-                {formatTime(meeting.time)}
-              </button>
+              {isPolling ? (
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">
+                  <Vote className="h-4 w-4" />
+                  Date poll open
+                </span>
+              ) : (
+                <button
+                  onClick={onEdit}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Calendar className="h-4 w-4" />
+                  {formatDate(meeting.date)}
+                </button>
+              )}
+              {!isPolling && (
+                <button
+                  onClick={onEdit}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Clock className="h-4 w-4" />
+                  {formatTime(meeting.time)}
+                </button>
+              )}
               <button
                 onClick={onEdit}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
@@ -397,75 +559,79 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit }: MeetingCar
               </button>
             </div>
 
-            {/* Share Button */}
-            <div className="mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleShare}
-                className="gap-1.5 h-8 px-2 text-xs text-primary/60 hover:text-primary hover:bg-primary/10"
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                {shareLabel}
-              </Button>
-            </div>
-
-            {/* RSVP Section */}
-            <div className="border-t border-border pt-4">
-              <p className="text-sm font-medium text-foreground mb-3">RSVP</p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Input
-                  value={rsvpName}
-                  onChange={(e) => setRsvpName(e.target.value)}
-                  placeholder="Your name"
-                  className="w-36 h-9 text-sm"
+            {isPolling ? (
+              /* Date Poll Section */
+              <div className="border-t border-border pt-4">
+                <DatePoll
+                  options={meeting.dateOptions!}
+                  userName={userName}
+                  onToggleVote={onToggleDateVote}
+                  onFinalize={onFinalizeDate}
                 />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant={currentRsvp?.response === "yes" ? "default" : "outline"}
-                    onClick={() => handleRSVP("yes")}
-                    disabled={!rsvpName.trim()}
-                    className="h-9"
-                  >
-                    Yes
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={currentRsvp?.response === "maybe" ? "default" : "outline"}
-                    onClick={() => handleRSVP("maybe")}
-                    disabled={!rsvpName.trim()}
-                    className="h-9"
-                  >
-                    Maybe
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={currentRsvp?.response === "no" ? "default" : "outline"}
-                    onClick={() => handleRSVP("no")}
-                    disabled={!rsvpName.trim()}
-                    className="h-9"
-                  >
-                    No
-                  </Button>
-                </div>
               </div>
-              {meeting.rsvps.length > 0 && (
-                <div className="mt-3 text-sm space-y-1">
-                  {(["yes", "maybe", "no"] as const).map((response) => {
-                    const names = meeting.rsvps.filter(r => r.response === response).map(r => r.name)
-                    if (names.length === 0) return null
-                    const label = response === "yes" ? "Yes" : response === "maybe" ? "Maybe" : "No"
-                    return (
-                      <div key={response} className="text-muted-foreground">
-                        <span className="font-medium text-foreground">{label}: </span>
-                        {names.join(", ")}
-                      </div>
-                    )
-                  })}
+            ) : (
+              /* RSVP Section */
+              <div className="border-t border-border pt-4">
+                <p className="text-sm font-medium text-foreground mb-3">RSVP</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Input
+                    value={rsvpName}
+                    onChange={(e) => setRsvpName(e.target.value)}
+                    placeholder="Your name"
+                    className="w-36 h-9 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={currentRsvp?.response === "yes" ? "default" : "outline"}
+                      onClick={() => handleRSVP("yes")}
+                      disabled={!rsvpName.trim()}
+                      className="h-9"
+                    >
+                      Yes
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={currentRsvp?.response === "maybe" ? "default" : "outline"}
+                      onClick={() => handleRSVP("maybe")}
+                      disabled={!rsvpName.trim()}
+                      className="h-9"
+                    >
+                      Maybe
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={currentRsvp?.response === "no" ? "default" : "outline"}
+                      onClick={() => handleRSVP("no")}
+                      disabled={!rsvpName.trim()}
+                      className="h-9"
+                    >
+                      No
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </div>
+                {meeting.rsvps.length > 0 && (
+                  <div className="mt-3 text-sm space-y-1">
+                    {(["yes", "maybe", "no"] as const).map((response) => {
+                      const names = meeting.rsvps.filter(r => r.response === response).map(r => r.name)
+                      if (names.length === 0) return null
+                      const label = response === "yes" ? "Yes" : response === "maybe" ? "Maybe" : "No"
+                      return (
+                        <div key={response} className="text-muted-foreground">
+                          <span className="font-medium text-foreground">{label}: </span>
+                          {names.join(", ")}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action bar */}
+            <CardActionBar
+              actions={[{ icon: Share2, label: shareLabel, onClick: handleShare }]}
+            />
           </div>
         </div>
       </CardContent>

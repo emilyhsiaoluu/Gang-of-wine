@@ -18,6 +18,7 @@ import {
 import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search, Star, Share2 } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
+import { CardActionBar } from "@/components/card-action-bar"
 import type { SuggestedBook, Vote } from "@/lib/types"
 
 interface VoteTabProps {
@@ -513,47 +514,21 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     </div>
                   </div>
 
-                  {/* Vote count + names */}
-                  <div className="mt-3 space-y-1">
-                    <div className="flex items-center gap-1 text-sm">
-                      <span className="font-semibold text-primary">{voteCount}</span>
-                      <span className="text-muted-foreground">{voteCount === 1 ? 'vote' : 'votes'}</span>
-                    </div>
-                    {voterNames.length > 0 && (
-                      <p className="text-xs text-muted-foreground">Voted by: {voterNames.join(", ")}</p>
-                    )}
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <Button
-                      variant={voted ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => onVote(book.id)}
-                      className={`gap-2 ${voted ? 'bg-primary hover:bg-primary/90' : ''}`}
-                    >
-                      <Heart className={`h-4 w-4 ${voted ? 'fill-current' : ''}`} />
-                      {voted ? 'Voted' : 'Vote'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onScheduleMeeting(book)}
-                      className="gap-2"
-                    >
-                      <Calendar className="h-4 w-4" />
-                      Schedule a Meeting
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleShare(book)}
-                      className="gap-1.5 text-primary/60 hover:text-primary hover:bg-primary/10"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      {shareLabels[book.id] ?? "Share"}
-                    </Button>
-                  </div>
+                  {/* Action bar */}
+                  <CardActionBar
+                    actions={[
+                      {
+                        icon: Heart,
+                        label: voted ? "Voted" : "Vote",
+                        onClick: () => onVote(book.id),
+                        active: voted,
+                        count: voteCount,
+                      },
+                      { icon: Calendar, label: "Schedule", onClick: () => onScheduleMeeting(book) },
+                      { icon: Share2, label: shareLabels[book.id] ?? "Share", onClick: () => handleShare(book) },
+                    ]}
+                    caption={voterNames.length > 0 ? <>Voted by {voterNames.join(", ")}</> : undefined}
+                  />
                 </CardContent>
               </Card>
             )

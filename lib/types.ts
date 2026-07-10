@@ -13,6 +13,12 @@ export interface RSVP {
   response: "yes" | "no" | "maybe"
 }
 
+export interface DateOption {
+  id: string
+  date: string
+  voters: string[]
+}
+
 export interface Meeting {
   id: string
   book: Book
@@ -21,6 +27,7 @@ export interface Meeting {
   location: string
   rsvps: RSVP[]
   wineTheme?: string
+  dateOptions?: DateOption[]
 }
 
 export interface SuggestedBook extends Book {
