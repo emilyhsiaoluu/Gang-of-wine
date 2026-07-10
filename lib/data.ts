@@ -3,20 +3,13 @@
 import type { DateOption, Meeting, RSVP, SuggestedBook, Vote } from "@/lib/types"
 import { getSupabaseClient } from "@/lib/supabase"
 import { demoMeetings, demoSuggestions, demoVotes } from "@/lib/demo-data"
+import { table } from "@/lib/table"
 
 // Demo mode (?demo=1): all reads/writes hit an in-memory copy of sample data
 // instead of Supabase, so the UI can be exercised without touching real data.
 // Refreshing the page resets it.
 const isDemoMode = () =>
   typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo")
-
-// Staging shares a Supabase project with other apps (no separate free tier
-// project available), so its tables are prefixed to avoid name collisions —
-// e.g. "gow_suggestions" instead of "suggestions". Set
-// NEXT_PUBLIC_TABLE_PREFIX="gow_" on the staging/preview environment only;
-// production leaves it unset and keeps the original unprefixed table names.
-const TABLE_PREFIX = process.env.NEXT_PUBLIC_TABLE_PREFIX ?? ""
-const table = (name: string) => `${TABLE_PREFIX}${name}`
 
 let demoState: { meetings: Meeting[]; suggestions: SuggestedBook[]; votes: Vote[] } | null = null
 
