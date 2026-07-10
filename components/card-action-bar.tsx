@@ -46,7 +46,7 @@ export function CardActionBar({ actions, caption }: CardActionBarProps) {
             {count != null && count !== 0 && (
               <span className="text-base font-medium tabular-nums">{count}</span>
             )}
-            <span className="sr-only sm:not-sr-only sm:text-sm sm:font-medium">{label}</span>
+            <span className="text-sm font-medium">{label}</span>
           </Button>
         ))}
       </div>

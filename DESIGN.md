@@ -76,7 +76,9 @@ labeled buttons:
   for the interactive zone (RSVP / poll sections).
 - **Caption:** optional social-proof line beneath ("Voted by Emily, Sarah") —
   the IG "liked by" pattern.
-- Icon-only on the smallest screens, icon + label from `sm:` up.
+- **Labels always visible** next to icons, all screen sizes (owner preference,
+  2026-07 — icon-only felt cryptic). Keep labels to one short word so the
+  three-action bar still fits a 375px card; new actions must check this.
 - **Delete stays as the top-right X** (owner preference, 2026-07). If a card
   ever needs 3+ hidden actions, revisit a `⋯` overflow menu — until then,
   don't hide actions one level deep.
