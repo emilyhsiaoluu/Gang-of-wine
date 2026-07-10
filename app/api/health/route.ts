@@ -27,7 +27,9 @@ export async function GET() {
     CHECKED_TABLES.map(async (name) => {
       const start = Date.now()
       try {
-        const { error } = await supabase.from(table(name)).select("id").limit(1)
+        // head+count touches the table without assuming any particular column
+        // (votes / meeting_rsvps are join tables with composite keys, no id).
+        const { error } = await supabase.from(table(name)).select("*", { count: "exact", head: true })
         const ms = Date.now() - start
         if (error) return { table: name, ok: false, ms, error: error.message }
         return { table: name, ok: true, ms }
