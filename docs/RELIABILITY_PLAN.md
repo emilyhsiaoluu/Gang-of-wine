@@ -126,11 +126,12 @@ checks invariants and exits 1 on violation:
 UX lint (same Playwright run, demo mode): smoke tests catch "broken";
 these catch "bad." At a 375px viewport, on each tab:
 
-- every visible interactive element (button, link, tappable row) has a
-  bounding box of at least 44x44px — flags cramped tap targets
-  automatically (CLAUDE.md design rule, now enforced by a robot)
 - `document.documentElement.scrollWidth <= window.innerWidth` — no
-  horizontal overflow on any tab
+  horizontal overflow on any tab (genuine layout breakage)
+
+(A tap-target >=44px check was scoped out per owner decision on 2026-07-10 —
+current tap targets reviewed and accepted; not worth a daily red build over
+a deliberate design choice. Revisit if tap-target polish is prioritized.)
 
 **Accept when:** the workflow runs green on main, and deliberately breaking
 an assertion (e.g. shrinking a button below 44px) produces a failure email.
