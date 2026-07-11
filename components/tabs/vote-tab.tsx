@@ -255,7 +255,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
             setShowForm(true)
           }}
         >
-          <Lightbulb className="mr-2 h-5 w-5" />
+          <Lightbulb className="mr-2 h-5 w-5" strokeWidth={1.5} />
           Suggest a Book
         </Button>
       ) : (
@@ -272,7 +272,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                 }}
                 className="h-11 w-11"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" strokeWidth={1.5} />
               </Button>
             </div>
             <div className="space-y-4">
@@ -365,12 +365,12 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" strokeWidth={1.5} />
                       Searching...
                     </>
                   ) : (
                     <>
-                      <Search className="mr-2 h-4 w-4" />
+                      <Search className="mr-2 h-4 w-4" strokeWidth={1.5} />
                       Search
                     </>
                   )}
@@ -382,7 +382,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                   onClick={handleConfirmAdd}
                   disabled={!selectedBook || isLoading}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="mr-2 h-4 w-4" strokeWidth={1.5} />
                   Add Suggestion
                 </Button>
                 <Button
@@ -407,7 +407,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
       {/* Book List */}
       {suggestions.length === 0 ? (
         <div className="text-center py-12">
-          <Heart className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
+          <Heart className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" strokeWidth={1.5} />
           <p className="text-muted-foreground">No books suggested yet. Be the first!</p>
         </div>
       ) : (
@@ -430,7 +430,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                   className="absolute top-2 right-2 h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
                   onClick={() => onDelete(book.id)}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" strokeWidth={1.5} />
                 </Button>
 
                 <CardContent className="p-4 pr-10">
@@ -447,7 +447,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        {isLeading && <Trophy className="h-4 w-4 text-primary flex-shrink-0" />}
+                        {isLeading && <Trophy className="h-4 w-4 text-primary flex-shrink-0" strokeWidth={1.5} />}
                         <h3 className="font-serif text-lg font-semibold text-foreground truncate">
                           {book.title}
                         </h3>
@@ -466,7 +466,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
                           {cardData[book.id]?.rating != null && (
                             <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                              <Star className="h-3 w-3 fill-primary text-primary" />
+                              <Star className="h-3 w-3 fill-primary text-primary" strokeWidth={1.5} />
                               {cardData[book.id]?.rating}
                             </span>
                           )}

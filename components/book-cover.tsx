@@ -39,7 +39,7 @@ export function BookCover({ title, author, coverUrl, size = "md", onClick }: Boo
         {...clickProps}
         className={`${sizeClasses[size]} rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-border flex flex-col items-center justify-center p-2 shadow-sm${onClick ? " cursor-pointer" : ""}`}
       >
-        <BookOpen className={`${iconSizeClasses[size]} text-primary/60 mb-1`} />
+        <BookOpen className={`${iconSizeClasses[size]} text-primary/60 mb-1`} strokeWidth={1.5} />
         <p className={`${textSizeClasses[size]} font-medium text-center text-foreground/80 leading-tight line-clamp-2`}>
           {title}
         </p>

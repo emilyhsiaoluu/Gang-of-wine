@@ -337,8 +337,8 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Wine className="h-6 w-6 text-primary" />
-            <BookOpen className="h-6 w-6 text-accent" />
+            <Wine className="h-6 w-6 text-primary" strokeWidth={1.5} />
+            <BookOpen className="h-6 w-6 text-accent" strokeWidth={1.5} />
             <span className="font-serif text-lg font-semibold text-foreground hidden sm:inline">
               Gang of Wine Moms Book Club
             </span>
@@ -380,21 +380,21 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
               value="schedule"
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-card data-[state=active]:text-primary"
             >
-              <Calendar className="h-5 w-5" />
+              <Calendar className="h-5 w-5" strokeWidth={1.5} />
               <span className="text-xs font-medium text-center leading-tight">RSVP</span>
             </TabsTrigger>
             <TabsTrigger
               value="vote"
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-card data-[state=active]:text-primary"
             >
-              <Heart className="h-5 w-5" />
+              <Heart className="h-5 w-5" strokeWidth={1.5} />
               <span className="text-xs font-medium">Vote</span>
             </TabsTrigger>
             <TabsTrigger
               value="archive"
               className="flex flex-col items-center gap-1 py-3 data-[state=active]:bg-card data-[state=active]:text-primary"
             >
-              <Archive className="h-5 w-5" />
+              <Archive className="h-5 w-5" strokeWidth={1.5} />
               <span className="text-xs font-medium">Archive</span>
             </TabsTrigger>
           </TabsList>

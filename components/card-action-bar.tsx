@@ -42,7 +42,7 @@ export function CardActionBar({ actions, caption }: CardActionBarProps) {
                 : "text-foreground hover:text-foreground"
             }`}
           >
-            <Icon className={`!h-6 !w-6 ${active ? "fill-current" : ""}`} strokeWidth={2} />
+            <Icon className={`!h-6 !w-6 ${active ? "fill-current" : ""}`} strokeWidth={1.5} />
             {count != null && count !== 0 && (
               <span className="text-base font-medium tabular-nums">{count}</span>
             )}

@@ -88,7 +88,7 @@ export function DatePoll({ options, userName, onToggleVote, onFinalize }: DatePo
                   available ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"
                 }`}
               >
-                {available && <Check className="h-4.5 w-4.5" strokeWidth={3} />}
+                {available && <Check className="h-4.5 w-4.5" strokeWidth={2.5} />}
               </span>
               <span className="flex-1 min-w-0">
                 <span className="block text-base font-medium text-foreground">
@@ -120,7 +120,7 @@ export function DatePoll({ options, userName, onToggleVote, onFinalize }: DatePo
             className="h-11 gap-1.5 flex-shrink-0 text-primary hover:text-primary hover:bg-primary/10"
             onClick={() => setConfirmDate(leader.date)}
           >
-            <CalendarCheck className="h-4 w-4" />
+            <CalendarCheck className="h-4 w-4" strokeWidth={1.5} />
             Lock it in
           </Button>
         </div>
