@@ -29,7 +29,7 @@ export default function ErrorPage({
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="text-center max-w-sm">
-        <Wine className="h-10 w-10 mx-auto text-primary mb-4" strokeWidth={1.5} />
+        <Wine className="h-10 w-10 mx-auto text-primary mb-4" />
         <h1 className="font-serif text-2xl text-foreground mb-2">
           Well, that&apos;s a spill 🍷
         </h1>

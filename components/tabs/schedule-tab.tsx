@@ -253,7 +253,7 @@ export function ScheduleTab({
                       dateMode === "single" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    <Calendar className="h-4 w-4" strokeWidth={1.5} />
+                    <Calendar className="h-4 w-4" />
                     Set a date
                   </button>
                   <button
@@ -263,7 +263,7 @@ export function ScheduleTab({
                       dateMode === "poll" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
                     }`}
                   >
-                    <Vote className="h-4 w-4" strokeWidth={1.5} />
+                    <Vote className="h-4 w-4" />
                     Poll for dates
                   </button>
                 </div>
@@ -291,7 +291,7 @@ export function ScheduleTab({
                           className="h-9 w-9 flex-shrink-0 text-muted-foreground"
                           onClick={() => setPollDates(pollDates.filter((_, j) => j !== i))}
                         >
-                          <X className="h-4 w-4" strokeWidth={1.5} />
+                          <X className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -304,7 +304,7 @@ export function ScheduleTab({
                       className="gap-1.5"
                       onClick={() => setPollDates([...pollDates, ""])}
                     >
-                      <Plus className="h-4 w-4" strokeWidth={1.5} />
+                      <Plus className="h-4 w-4" />
                       Add another date
                     </Button>
                   )}
@@ -366,7 +366,7 @@ export function ScheduleTab({
                     className="h-11 gap-1.5 text-primary hover:text-primary hover:bg-primary/10 -ml-3"
                     onClick={() => setShowReopenConfirm(true)}
                   >
-                    <Vote className="h-4 w-4" strokeWidth={1.5} />
+                    <Vote className="h-4 w-4" />
                     Date no longer works? Reopen the poll
                   </Button>
                 </div>
@@ -494,7 +494,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
         className="absolute top-2 right-2 h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
         onClick={onDelete}
       >
-        <X className="h-4 w-4" strokeWidth={1.5} />
+        <X className="h-4 w-4" />
       </Button>
 
       <CardContent className="p-0">
@@ -527,7 +527,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
             <div className="flex flex-wrap gap-2 text-sm mb-4">
               {isPolling ? (
                 <span className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-full bg-primary/10 text-primary font-medium">
-                  <Vote className="h-4 w-4" strokeWidth={1.5} />
+                  <Vote className="h-4 w-4" />
                   Date poll open
                 </span>
               ) : (
@@ -535,7 +535,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                   onClick={onEdit}
                   className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <Calendar className="h-4 w-4" strokeWidth={1.5} />
+                  <Calendar className="h-4 w-4" />
                   {formatDate(meeting.date)}
                 </button>
               )}
@@ -544,7 +544,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                   onClick={onEdit}
                   className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <Clock className="h-4 w-4" strokeWidth={1.5} />
+                  <Clock className="h-4 w-4" />
                   {formatTime(meeting.time)}
                 </button>
               )}
@@ -552,7 +552,7 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                 onClick={onEdit}
                 className="flex items-center gap-1.5 px-3 min-h-[44px] rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <MapPin className="h-4 w-4" strokeWidth={1.5} />
+                <MapPin className="h-4 w-4" />
                 {meeting.location}
               </button>
             </div>

@@ -203,7 +203,7 @@ export function TimePicker({ value, onChange }: TimePickerProps) {
         }}
         className="flex w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-left hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
       >
-        <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" strokeWidth={1.5} />
+        <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
         <span className={value ? "text-foreground" : "text-muted-foreground"}>
           {displayLabel}
         </span>

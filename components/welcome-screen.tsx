@@ -25,8 +25,8 @@ export function WelcomeScreen({ onJoin, defaultName = "" }: WelcomeScreenProps) 
       <div className="max-w-md w-full text-center">
         {/* Logo/Icon */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <Wine className="h-10 w-10 text-primary" strokeWidth={1.5} />
-          <BookOpen className="h-10 w-10 text-accent" strokeWidth={1.5} />
+          <Wine className="h-10 w-10 text-primary" />
+          <BookOpen className="h-10 w-10 text-accent" />
         </div>
 
         {/* Title */}

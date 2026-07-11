@@ -105,7 +105,7 @@ export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
   if (archive.length === 0) {
     return (
       <div className="text-center py-12">
-        <Archive className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" strokeWidth={1.5} />
+        <Archive className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
         <h3 className="font-serif text-xl text-foreground mb-2">No books in the archive yet</h3>
         <p className="text-muted-foreground">Past book club picks will appear here</p>
       </div>
@@ -156,7 +156,7 @@ export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
               className="absolute top-2 right-2 h-11 w-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               onClick={() => setMeetingToDelete(meeting.id)}
             >
-              <X className="h-4 w-4" strokeWidth={1.5} />
+              <X className="h-4 w-4" />
             </Button>
             <CardContent className="p-4">
               <div className="flex gap-4">
@@ -183,16 +183,16 @@ export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
                   
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4" strokeWidth={1.5} />
+                      <Calendar className="h-4 w-4" />
                       <span>Read on {formatArchiveDate(meeting.date)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-4 w-4" strokeWidth={1.5} />
+                      <MapPin className="h-4 w-4" />
                       <span>{meeting.location}</span>
                     </div>
                     {meeting.book.suggestedBy && (
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <User className="h-4 w-4" strokeWidth={1.5} />
+                        <User className="h-4 w-4" />
                         <span>Suggested by {meeting.book.suggestedBy}</span>
                       </div>
                     )}
@@ -202,14 +202,13 @@ export function ArchiveTab({ archive, onDeleteMeeting }: ArchiveTabProps) {
                     <div className="mt-3 flex items-center gap-1">
                       <span className="text-sm text-muted-foreground mr-1">Club rating:</span>
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
+                        <Star 
                           key={star}
                           className={`h-4 w-4 ${
-                            star <= meeting.book.rating!
-                              ? 'text-primary fill-primary'
+                            star <= meeting.book.rating! 
+                              ? 'text-primary fill-primary' 
                               : 'text-muted-foreground/30'
                           }`}
-                          strokeWidth={1.5}
                         />
                       ))}
                     </div>
