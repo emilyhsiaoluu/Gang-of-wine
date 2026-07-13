@@ -41,7 +41,10 @@ A mobile-first book club app for a small group of friends ("Gang of Wine Moms").
 
 ## Git + deploy workflow
 
-**Branch:** always develop on `claude/supabase-database-name-gg9h06`
+**Branch:** develop on the session's assigned `claude/*` branch. (Historically
+everything had to go through `claude/supabase-database-name-gg9h06` because the
+Preview env vars in Vercel were pinned to that one branch; the pin was removed
+on 2026-07-13, so any branch gets a working preview now.)
 
 **Every session:**
 1. After squash-merging a PR to main, the branch diverges. Fix with:
@@ -49,18 +52,21 @@ A mobile-first book club app for a small group of friends ("Gang of Wine Moms").
    git fetch origin main
    git reset --hard origin/main
    git cherry-pick <latest-commit-sha>
-   git push --force-with-lease origin claude/supabase-database-name-gg9h06
+   git push --force-with-lease origin <branch-name>
    ```
 2. Open a draft PR, wait for Vercel to show **Ready**, then merge with squash.
-3. **Always paste the preview URL in chat after every push — every single time, even if you just shared it:**
-   `https://gang-of-wine-git-claude-sup-a57bf6-emilyhsiaoluu-5596s-projects.vercel.app`
+3. **Always paste the preview URL in chat after every push — every single time,
+   even if you just shared it.** Vercel derives it from the branch name:
+   `https://gang-of-wine-git-<branch-slug>-emilyhsiaoluu-5596s-projects.vercel.app`
+   (the exact URL appears in the Vercel bot comment on the PR).
 
 **Why:** The owner's friends use prod. Test on the preview URL, never dogfood on prod.
 
 ## Database safety (learned from the 2026-07-10 outage)
 
-The preview deployment and production share ONE Supabase database. Preview is
-not a sandbox. Two hard rules:
+Preview deployments use a **separate staging Supabase project** (verified
+2026-07-13 via the preview bundle + health check), so previews cannot touch
+production data. Two hard rules still apply:
 
 1. **Code before data.** If a feature changes what the data can look like
    (new column, nullable field, new "kind" of row), the code that understands
@@ -83,10 +89,17 @@ Inventory (names + scopes only — values live in Vercel, never in the repo):
 | Variable | Scope | Purpose |
 |----------|-------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Production | Prod database URL |
+| `NEXT_PUBLIC_SUPABASE_URL` | Preview (all branches) | **Staging** database URL — a separate Supabase project from prod |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production | Prod public anon key |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Preview (all branches) | Staging public anon key |
 | `NEXT_PUBLIC_POSTHOG_KEY` | Production + Preview | Analytics |
 | `NEXT_PUBLIC_POSTHOG_HOST` | Production + Preview | Analytics |
-| `NEXT_PUBLIC_TABLE_PREFIX` | Preview/staging only (`gow_`) | Staging table prefix — must NEVER be set on Production |
+| `NEXT_PUBLIC_TABLE_PREFIX` | Preview (all branches) (`gow_`) | Staging table prefix — must NEVER be set on Production |
+
+The three Preview-scoped vars were originally pinned to the branch
+`claude/supabase-database-name-gg9h06`, which made preview builds on every
+other branch fail the `check-env.mjs` guard. The owner removed the branch
+pins on 2026-07-13 so all preview branches build.
 
 Hard rules:
 
