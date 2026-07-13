@@ -123,4 +123,18 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Icon line weight, set once for every lucide icon. SVG stroke thickness
+     scales with rendered size — the same stroke-width value draws a ~50%
+     thicker line on a 24px icon than a 16px one — so large icons get a
+     lower value to keep all lines reading the same weight. A component can
+     override locally via the --icon-stroke custom property (inline
+     strokeWidth props are ignored once this rule exists). */
+  svg.lucide {
+    stroke-width: var(--icon-stroke, 1.5);
+  }
+  svg.lucide.h-10,
+  svg.lucide.h-12 {
+    stroke-width: var(--icon-stroke, 1);
+  }
 }

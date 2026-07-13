@@ -88,7 +88,9 @@ export function DatePoll({ options, userName, onToggleVote, onFinalize }: DatePo
                   available ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"
                 }`}
               >
-                {available && <Check className="h-4.5 w-4.5" strokeWidth={3} />}
+                {/* Reversed-out tick on a filled circle: stays bold on purpose,
+                    a thin check loses legibility at this size */}
+                {available && <Check className="h-4.5 w-4.5" style={{ "--icon-stroke": 3 } as React.CSSProperties} />}
               </span>
               <span className="flex-1 min-w-0">
                 <span className="block text-base font-medium text-foreground">

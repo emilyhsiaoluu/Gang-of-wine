@@ -26,7 +26,9 @@ interface CardActionBarProps {
  */
 export function CardActionBar({ actions, caption }: CardActionBarProps) {
   return (
-    <div className="mt-3 -ml-3">
+    // 24px icons need a lower stroke value than the global default to draw
+    // the same physical line weight as the app's smaller icons.
+    <div className="mt-3 -ml-3" style={{ "--icon-stroke": 1.25 } as React.CSSProperties}>
       <div className="flex items-center gap-1">
         {actions.map(({ icon: Icon, label, onClick, active, count }) => (
           <Button
@@ -42,7 +44,7 @@ export function CardActionBar({ actions, caption }: CardActionBarProps) {
                 : "text-foreground hover:text-foreground"
             }`}
           >
-            <Icon className={`!h-6 !w-6 ${active ? "fill-current" : ""}`} strokeWidth={2} />
+            <Icon className={`!h-6 !w-6 ${active ? "fill-current" : ""}`} />
             {count != null && count !== 0 && (
               <span className="text-base font-medium tabular-nums">{count}</span>
             )}
