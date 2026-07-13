@@ -14,9 +14,19 @@ export async function GET() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "unknown"
 
+  // Presence booleans only — never the values. Lets us debug "which env var
+  // is missing in this deployment?" from outside without Vercel dashboard
+  // access (learned from the 2026-07-13 branch-pinned-env-vars incident).
+  const env = {
+    vercelEnv: process.env.VERCEL_ENV ?? "unknown",
+    NEXT_PUBLIC_SUPABASE_URL: !!url,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: !!key,
+    NEXT_PUBLIC_TABLE_PREFIX: !!process.env.NEXT_PUBLIC_TABLE_PREFIX,
+  }
+
   if (!url || !key) {
     return Response.json(
-      { ok: false, error: "Supabase env vars missing", commit },
+      { ok: false, error: "Supabase env vars missing", commit, env },
       { status: 503 },
     )
   }
@@ -40,5 +50,5 @@ export async function GET() {
   )
 
   const ok = results.every((r) => r.ok)
-  return Response.json({ ok, commit, tables: results }, { status: ok ? 200 : 503 })
+  return Response.json({ ok, commit, env, tables: results }, { status: ok ? 200 : 503 })
 }
