@@ -163,29 +163,26 @@ part of this. Each one is a bigger project than the problem, and the problem is
 - **Size:** S
 - **Status:** Proposed — worth fixing before it's blamed on a feature.
 
-### 🔴 The staging database is gone — previews can't test real data
-- **Found:** 2026-09-11, verifying PR #32 against its Vercel preview.
-  `/api/health` on the preview returns `"ok": false` with `TypeError: fetch
-  failed` on all four tables, while the env vars are all present.
-- **What it is:** the staging project the Preview scope points at,
-  `mfsurihnjrslnghlasvt.supabase.co`, **no longer resolves in DNS** (curl exit
-  6). Production, `zesmmtrzazmrctrthvlk.supabase.co`, resolves fine (401 —
-  alive, just needs a key). A *paused* free-tier project still resolves, so
-  this reads as deleted rather than paused — Emily's Supabase dashboard is the
-  place to confirm which.
-- **Why it matters:** this is the opposite of harmless. Previews can't reach
-  real data, which is safe — but it also means **there is no environment left
-  where a real Supabase read/write can be exercised before production.** Every
-  data path now gets its first real run on the app ten people use. That is the
-  exact failure mode the whole contract exists to prevent.
-- **Fix (needs Emily — it's her Supabase login):** create a new free Supabase
-  project, run `sql/staging_setup.sql` in it, then update the three
-  **Preview**-scoped vars in Vercel (`NEXT_PUBLIC_SUPABASE_URL`,
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_TABLE_PREFIX=gow_`) — **edit,
-  never delete.** Then redeploy the preview and confirm `/api/health` is `ok`.
-  Same values go in `.env.local` to fix local dev in one step.
-- **Size:** S (Emily, ~15 min)
-- **Status:** Proposed — the highest-value item on this list.
+### Staging was down — RESOLVED 2026-09-11
+- **Symptom:** the preview's `/api/health` returned `"ok": false` with `fetch
+  failed` on all four tables while every env var was present, and
+  `mfsurihnjrslnghlasvt.supabase.co` would not resolve in DNS.
+- **First call was wrong.** Diagnosed as deleted, on the reasoning that a
+  paused free-tier project still resolves. It doesn't — **a paused Supabase
+  project stops resolving, which looks identical to a deleted one from
+  outside.** The dashboard is the only place that distinguishes them; check it
+  before concluding anything is gone.
+- **Actual cause:** the project ("Emily's Apps", shared with her other apps —
+  hence the `gow_` table prefix) had auto-paused after ~7 days idle.
+- **Fix:** Resume project in the dashboard. Data intact, no new project, no env
+  var changes, ~3 minutes. Preview `/api/health` green again.
+- **Then seeded it from production** with `pnpm seed-staging --replace` — all
+  50 rows. It had held 2 rows, which is the "empty staging hides the bugs worth
+  catching" case exactly.
+- **Left over:** it will pause again after ~7 days idle. Not worth automating
+  around; just recognise the symptom. Upgrading that org to Pro would stop it,
+  which is a money question for Emily, not a technical one.
+- **Status:** Shipped 2026-09-11
 
 ### The `suggestion_id` migration never ran on production
 - **Found:** 2026-09-11, in the first-ever production backup — the `meetings`

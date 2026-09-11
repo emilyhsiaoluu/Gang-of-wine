@@ -52,7 +52,8 @@ if (url.includes(PRODUCTION_REF)) {
   )
 }
 
-const snapshotArg = process.argv[2]
+// argv may hold flags in any order, so pick the first non-flag as the snapshot.
+const snapshotArg = process.argv.slice(2).find((a) => !a.startsWith("--"))
 const file =
   snapshotArg ??
   (() => {
@@ -78,22 +79,67 @@ const t = (name) => `${prefix}${name}`
 const ORDER = ["suggestions", "meetings", "votes", "meeting_rsvps"]
 
 // Guard 3: never seed on top of existing rows. Re-running would duplicate
-// every suggestion and double every vote count.
+// every suggestion and double every vote count. --replace clears the target
+// first; it is safe to have here only because the production guard above has
+// already run, and it deletes by explicit id rather than issuing a bare
+// delete (see the data-safety rules in CLAUDE.md).
+const replace = process.argv.includes("--replace")
 for (const name of ORDER) {
-  const { count, error } = await supabase.from(t(name)).select("*", { count: "exact", head: true })
+  const { data, error } = await supabase.from(t(name)).select("*")
   if (error) {
     die(
       `Could not read "${t(name)}" on the target: ${error.message}`,
       "Has sql/staging_setup.sql been run on this project yet?",
     )
   }
-  if (count > 0 && !process.argv.includes("--force")) {
+  if (data.length === 0) continue
+  if (!replace) {
     die(
-      `REFUSED: "${t(name)}" already has ${count} row(s).`,
-      "Seeding on top would duplicate everything. Empty the tables first,",
-      "or pass --force if you know the target is disposable.",
+      `REFUSED: "${t(name)}" already has ${data.length} row(s).`,
+      "Seeding on top would duplicate everything.",
+      "Pass --replace to clear the target first (staging only -- production is refused above).",
     )
   }
+}
+
+if (replace) {
+  // Children before parents, the reverse of the insert order.
+  for (const name of [...ORDER].reverse()) {
+    const { data } = await supabase.from(t(name)).select("*")
+    if (!data?.length) continue
+    for (const row of data) {
+      let q = supabase.from(t(name)).delete()
+      // Every delete carries an explicit filter on this row's own key.
+      if (row.id != null) q = q.eq("id", row.id)
+      else if (row.suggestion_id != null) q = q.eq("suggestion_id", row.suggestion_id).eq("voter_name", row.voter_name)
+      else if (row.meeting_id != null) q = q.eq("meeting_id", row.meeting_id).eq("rsvp_name", row.rsvp_name)
+      else continue
+      const { error } = await q
+      if (error) die(`Could not clear "${t(name)}": ${error.message}`)
+    }
+    console.log(`  ${name}: cleared ${data.length} existing row(s)`)
+  }
+}
+
+// The two databases' schemas drift -- staging had suggestion_id before
+// production did; production has updated_at columns staging lacks. Rather than
+// failing on the first mismatch, drop the columns the target doesn't have and
+// say which, so a copy still gets you usable data.
+async function insertTolerant(name, rows) {
+  let payload = rows
+  const dropped = new Set()
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const { error } = await supabase.from(t(name)).insert(payload)
+    if (!error) return dropped
+    const missing = error.message.match(/'([^']+)' column/)?.[1]
+    if (!missing) return { error }
+    dropped.add(missing)
+    payload = payload.map((r) => {
+      const { [missing]: _drop, ...rest } = r
+      return rest
+    })
+  }
+  return { error: { message: "too many missing columns; schemas have drifted too far" } }
 }
 
 let total = 0
@@ -103,17 +149,16 @@ for (const name of ORDER) {
     console.log(`  ${name}: nothing to copy`)
     continue
   }
-  const { error } = await supabase.from(t(name)).insert(rows)
-  if (error) {
+  const result = await insertTolerant(name, rows)
+  if (result.error) {
     die(
-      `\nFailed inserting into "${t(name)}": ${error.message}`,
-      "If it names a missing column, the staging schema is behind production --",
-      "run the files in sql/ against the staging project and try again.",
-      `Stopped after ${total} row(s); the target is now half-seeded, so empty it before retrying.`,
+      `\nFailed inserting into "${t(name)}": ${result.error.message}`,
+      `Stopped after ${total} row(s); the target is half-seeded, so re-run with --replace.`,
     )
   }
+  const note = result.size > 0 ? ` (dropped column(s) the target lacks: ${[...result].join(", ")})` : ""
   total += rows.length
-  console.log(`  ${name}: ${rows.length} rows copied`)
+  console.log(`  ${name}: ${rows.length} rows copied${note}`)
 }
 
 console.log(`\nSeeded ${total} rows into staging.`)

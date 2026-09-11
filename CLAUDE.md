@@ -284,13 +284,20 @@ itself breaks with `bad object refs/Icon?`, run:
 **Never dogfood on production.** Preview is meant to use a separate staging
 database; demo mode uses no database at all.
 
-🔴 **Staging is currently DOWN (found 2026-09-11).** The project the Preview
-scope points at, `mfsurihnjrslnghlasvt.supabase.co`, no longer resolves — the
-preview's `/api/health` returns `"ok": false` on all four tables. Until Emily
-stands up a replacement (see `docs/BACKLOG.md`), **no real Supabase read or
-write can be exercised anywhere but production.** So: say so explicitly in
-every report that touches `lib/data.ts`, keep such changes small and
-individually revertable, and check `/api/health` immediately after the merge.
+⚠️ **Staging pauses itself, and a paused project looks deleted.** Supabase's
+free tier pauses a project after ~7 days idle, and a paused project **stops
+resolving in DNS** — so the symptom is `curl` failing to resolve the host and
+the preview's `/api/health` returning `"ok": false` on all four tables with
+every env var present. That reads exactly like a deleted project. It is not.
+**Check the Supabase dashboard before concluding anything is gone** (2026-09-11:
+diagnosed as deleted, was paused; one click restored it, data intact).
+
+The staging project is **"Emily's Apps" (`mfsurihnjrslnghlasvt`)**, shared with
+her other apps, which is why Gang of Wine's tables are prefixed `gow_`. If it
+has paused again: dashboard → the project → **Resume project**, wait a few
+minutes, then re-check the preview's `/api/health`. Right after a restore,
+PostgREST's schema cache can briefly report `PGRST205 could not find the
+table` — wait and retry rather than concluding the schema is missing.
 
 ## Environment variables
 
