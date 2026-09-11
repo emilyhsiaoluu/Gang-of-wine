@@ -134,6 +134,8 @@ rules that came out of it plus the ones that protect the data itself.
 4. **Back up before any SQL against production:** `pnpm backup`. It writes a
    timestamped JSON snapshot of all four tables to `backups/` (gitignored — it
    contains real names). This is the only undo that exists.
+   Needs the production credentials, which live in Vercel's Production scope:
+   `SUPABASE_URL=... SUPABASE_ANON_KEY=... pnpm backup`.
 5. **Code before data.** If a change alters what the data can look like, the
    code that *understands* the new shape must be live in production BEFORE any
    new-shape row is created. Old prod code + new-shape data = everyone's app
@@ -149,6 +151,31 @@ rules that came out of it plus the ones that protect the data itself.
    merge it, confirm `/api/health` is green.
 4. *Then* run the SQL in the Supabase dashboard.
 5. Confirm `/api/health` green again and tap through the affected flow.
+
+---
+
+## Seeding staging from production
+
+Once a staging project exists, give it real data — an empty staging hides the
+bugs worth catching (a poll with ten voters, a long name that wraps, a book
+with no cover, a meeting with a null date).
+
+```bash
+SUPABASE_URL=<prod> SUPABASE_ANON_KEY=<prod> pnpm backup
+STAGING_SUPABASE_URL=<staging> STAGING_SUPABASE_ANON_KEY=<staging> pnpm seed-staging
+```
+
+**Seed once; do not build a sync.** A scheduled copy is a second system to
+maintain and a second thing that can one day point the wrong way. Re-run it by
+hand when staging has drifted far enough to stop being useful.
+
+`seed-staging.mjs` refuses to write to the production project by name, refuses
+to read credentials from the ordinary `SUPABASE_*`/`NEXT_PUBLIC_*` variables
+(the ones lying around pointing at prod), and refuses to seed on top of
+existing rows. **Data flows production → staging and never back.**
+
+⚠️ The snapshot holds real people's names. `backups/` is gitignored — keep it
+that way, and don't paste snapshot contents into a PR, an issue, or a chat.
 
 ---
 

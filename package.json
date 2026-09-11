@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "backup": "node scripts/backup.mjs",
+    "seed-staging": "node scripts/seed-staging.mjs",
     "test:local": "SMOKE_BASE_URL=http://localhost:3000 playwright test demo.spec.ts ux-lint.spec.ts",
     "test:smoke": "playwright test"
   },

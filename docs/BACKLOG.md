@@ -187,6 +187,22 @@ part of this. Each one is a bigger project than the problem, and the problem is
 - **Size:** S (Emily, ~15 min)
 - **Status:** Proposed — the highest-value item on this list.
 
+### The `suggestion_id` migration never ran on production
+- **Found:** 2026-09-11, in the first-ever production backup — the `meetings`
+  table has no `suggestion_id` column, though `sql/2026-07-suggestion-link.sql`
+  has been sitting in the repo since July.
+- **What it costs:** nothing crashes — `addMeeting` catches the error and
+  retries without the field. But the feature it powers is silently dead:
+  deleting a meeting is supposed to return its book, votes intact, to the Vote
+  tab, and today it just doesn't. A feature that quietly does nothing is worse
+  than one that's missing, because nobody reports it.
+- **Fix:** run `sql/2026-07-suggestion-link.sql` in the Supabase SQL editor.
+  It's additive and idempotent, and the code that understands the column has
+  been live for two months, so the code-before-data rule is already satisfied.
+  Run `pnpm backup` first anyway — that's the protocol.
+- **Size:** S (Emily, 2 min in the dashboard)
+- **Status:** Proposed
+
 ### `.env.local` points at a dead Supabase project
 - **Found:** 2026-09-11. The hostname in `.env.local` no longer resolves, so
   local dev against real data shows the error banner. Demo mode is unaffected.
