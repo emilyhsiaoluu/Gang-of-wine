@@ -1,14 +1,25 @@
-# Gang of Wine Moms Book Club — Agent Instructions
+# Gang of Wine Moms Book Club — agent instructions
 
-This file contains project context for AI coding agents (Codex, etc.).
-Full instructions live in `CLAUDE.md` — read that file before starting any task.
+**`CLAUDE.md` is the operating contract. Read it in full before your first tool
+call, whichever agent you are.** This file is a pointer, not a summary — don't
+work from the orientation below alone, and don't add rules here. Cross-agent
+rules go in `CLAUDE.md`.
 
 ## Quick orientation
 
-- **Stack:** Next.js 16 (App Router), Supabase (Postgres), shadcn/ui + Tailwind CSS, lucide-react icons
-- **Prod deploy:** Vercel — changes to `main` go live automatically
-- **Dev branch:** always work on `claude/supabase-database-name-gg9h06`
-- **Preview URL:** `https://gang-of-wine-git-claude-sup-a57bf6-emilyhsiaoluu-5596s-projects.vercel.app`
-- **Owner:** non-technical — be a CTO partner, not just a code executor. Flag UX gaps and tradeoffs proactively.
+- **Real production app**, used by ~10 people on their phones. `main` deploys to
+  Vercel automatically.
+- **Stack:** Next.js 16 (App Router), React 19, TypeScript, Supabase, shadcn/ui
+  + Tailwind v4, lucide-react, PostHog, Playwright.
+- **Branch:** `claude/<short-description>` off latest `main`. Never commit to `main`.
+- **Dogfood in demo mode** — `http://localhost:3000/?demo=1` — never on production.
+- **Before saying anything is done:** run the Ship Gate in `CLAUDE.md`
+  (`pnpm typecheck`, `pnpm build`, `pnpm test:local`, tap through it yourself in
+  a browser at 375px, report what you did *not* verify).
 
-See `CLAUDE.md` for the full breakdown of key files, git workflow, design rules, and code patterns.
+## The three things that matter most
+
+1. Don't break production. 2. Don't lose data. 3. Don't add bloat.
+
+Feature requests go in `docs/BACKLOG.md` before any code. Design rules are in
+`DESIGN.md`. Past incidents are in `docs/RELIABILITY_PLAN.md`.

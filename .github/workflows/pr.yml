@@ -1,0 +1,61 @@
+name: PR checks
+
+# Runs on every pull request and on main. Before this existed, the only
+# automated check was a 6:23am cron against production -- which meant a broken
+# build or a failing test was found the morning AFTER it shipped to the ten
+# people who use this app. See docs/BACKLOG.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  checks:
+    name: Typecheck, build, demo smoke
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder values so the build's check-env guard passes. The demo-mode
+      # tests below never reach Supabase, and this bundle is never deployed --
+      # Vercel builds the real one with the real Preview-scoped vars.
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Install Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start the built app
+        run: |
+          pnpm start &
+          npx --yes wait-on http://localhost:3000 --timeout 60000
+
+      # Demo mode only (?demo=1): in-memory sample data, never touches any
+      # database. tests/smoke/prod.spec.ts is excluded -- it asserts against
+      # the live production site and belongs to the nightly run, not to a PR.
+      - name: Demo smoke + UX lint
+        run: pnpm exec playwright test demo.spec.ts ux-lint.spec.ts
+        env:
+          SMOKE_BASE_URL: http://localhost:3000
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

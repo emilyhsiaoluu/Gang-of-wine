@@ -20,3 +20,9 @@ node_modules
 # Playwright
 playwright-report/
 test-results/
+
+# Production data snapshots from `pnpm backup` -- real people's names, never commit
+backups/
+
+# Google Drive folder-icon artifacts (files literally named "Icon\r")
+Icon?
