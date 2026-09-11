@@ -163,6 +163,30 @@ part of this. Each one is a bigger project than the problem, and the problem is
 - **Size:** S
 - **Status:** Proposed — worth fixing before it's blamed on a feature.
 
+### 🔴 The staging database is gone — previews can't test real data
+- **Found:** 2026-09-11, verifying PR #32 against its Vercel preview.
+  `/api/health` on the preview returns `"ok": false` with `TypeError: fetch
+  failed` on all four tables, while the env vars are all present.
+- **What it is:** the staging project the Preview scope points at,
+  `mfsurihnjrslnghlasvt.supabase.co`, **no longer resolves in DNS** (curl exit
+  6). Production, `zesmmtrzazmrctrthvlk.supabase.co`, resolves fine (401 —
+  alive, just needs a key). A *paused* free-tier project still resolves, so
+  this reads as deleted rather than paused — Emily's Supabase dashboard is the
+  place to confirm which.
+- **Why it matters:** this is the opposite of harmless. Previews can't reach
+  real data, which is safe — but it also means **there is no environment left
+  where a real Supabase read/write can be exercised before production.** Every
+  data path now gets its first real run on the app ten people use. That is the
+  exact failure mode the whole contract exists to prevent.
+- **Fix (needs Emily — it's her Supabase login):** create a new free Supabase
+  project, run `sql/staging_setup.sql` in it, then update the three
+  **Preview**-scoped vars in Vercel (`NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_TABLE_PREFIX=gow_`) — **edit,
+  never delete.** Then redeploy the preview and confirm `/api/health` is `ok`.
+  Same values go in `.env.local` to fix local dev in one step.
+- **Size:** S (Emily, ~15 min)
+- **Status:** Proposed — the highest-value item on this list.
+
 ### `.env.local` points at a dead Supabase project
 - **Found:** 2026-09-11. The hostname in `.env.local` no longer resolves, so
   local dev against real data shows the error banner. Demo mode is unaffected.

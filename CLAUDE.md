@@ -228,6 +228,7 @@ will hit the real database during testing. That is how data gets lost.
 
 ⚠️ **Known issue (found 2026-09-11):** `.env.local` points at a Supabase project
 (`vfvwldamyfztzwerijqk`) that no longer exists — its hostname doesn't resolve.
+(It is a *third* project, separate from prod and from the dead staging one.)
 So local dev against *real* data shows the error banner. **Demo mode works fine
 and is the correct way to dogfood anyway.** To fix real-data local dev, Emily
 copies the **Preview**-scoped `NEXT_PUBLIC_SUPABASE_URL`,
@@ -253,8 +254,16 @@ itself breaks with `bad object refs/Icon?`, run:
 - After a squash merge your branch has diverged; start the next one fresh from
   `git fetch origin && git checkout -b claude/<next> origin/main`.
 
-**Never dogfood on production.** Preview uses a separate staging database;
-demo mode uses no database at all.
+**Never dogfood on production.** Preview is meant to use a separate staging
+database; demo mode uses no database at all.
+
+🔴 **Staging is currently DOWN (found 2026-09-11).** The project the Preview
+scope points at, `mfsurihnjrslnghlasvt.supabase.co`, no longer resolves — the
+preview's `/api/health` returns `"ok": false` on all four tables. Until Emily
+stands up a replacement (see `docs/BACKLOG.md`), **no real Supabase read or
+write can be exercised anywhere but production.** So: say so explicitly in
+every report that touches `lib/data.ts`, keep such changes small and
+individually revertable, and check `/api/health` immediately after the merge.
 
 ## Environment variables
 
