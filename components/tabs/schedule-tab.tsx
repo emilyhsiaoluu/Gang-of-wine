@@ -15,11 +15,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Clock, Calendar, X, Share2, Vote, Plus } from "lucide-react"
+import { MapPin, Clock, Calendar, CalendarPlus, X, Share2, Vote, Plus } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
 import { CardActionBar } from "@/components/card-action-bar"
-import { DatePoll } from "@/components/date-poll"
+import { DatePoll, MAX_DATE_OPTIONS } from "@/components/date-poll"
 import type { DateOption, Meeting, SuggestedBook } from "@/lib/types"
 import { TimePicker } from "@/components/time-picker"
 
@@ -31,6 +31,8 @@ interface ScheduleTabProps {
   onDeleteMeeting: (meetingId: string) => void
   onUpdateMeeting: (meetingId: string, updates: Partial<Omit<Meeting, "id" | "rsvps" | "book">>) => void
   onToggleDateVote: (meetingId: string, optionId: string) => void
+  onAddDateOption: (meetingId: string, date: string) => void
+  onRemoveDateOption: (meetingId: string, optionId: string) => void
   onFinalizeDate: (meetingId: string, date: string) => void
   onReopenPoll: (meetingId: string) => void
   prefillBook?: SuggestedBook | null
@@ -45,6 +47,8 @@ export function ScheduleTab({
   onDeleteMeeting,
   onUpdateMeeting,
   onToggleDateVote,
+  onAddDateOption,
+  onRemoveDateOption,
   onFinalizeDate,
   onReopenPoll,
   prefillBook,
@@ -141,6 +145,19 @@ export function ScheduleTab({
     })
     setEditingMeetingId(meeting.id)
     setDateMode("single")
+    setShowForm(true)
+  }
+
+  // Opening the meeting form straight from the RSVP tab, with no book handed
+  // over from Vote. The group often picks the book off-platform and only needs
+  // a date, so this defaults to poll mode -- finding a night that works for ten
+  // people is the reason they came here.
+  const handleStartMeeting = () => {
+    setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
+    setPrefillBookId(null)
+    setEditingMeetingId(null)
+    setDateMode("poll")
+    setPollDates(["", ""])
     setShowForm(true)
   }
 
@@ -296,7 +313,7 @@ export function ScheduleTab({
                       )}
                     </div>
                   ))}
-                  {pollDates.length < 4 && (
+                  {pollDates.length < MAX_DATE_OPTIONS && (
                     <Button
                       type="button"
                       variant="outline"
@@ -378,10 +395,16 @@ export function ScheduleTab({
 
       {meetings.length === 0 && !showForm ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <div className="text-center mb-8">
-              <h3 className="font-serif text-xl text-foreground mb-2">No meetings yet</h3>
-            <p className="text-muted-foreground">Head to Vote to schedule the next meeting.</p>
+          <div className="text-center mb-6">
+            <h3 className="font-serif text-xl text-foreground mb-2">No meetings yet</h3>
+            <p className="text-muted-foreground">
+              Pick a book over on Vote, or plan one right here.
+            </p>
           </div>
+          <Button onClick={handleStartMeeting} className="w-full h-12 text-base">
+            <CalendarPlus className="h-4 w-4" />
+            Plan a meeting
+          </Button>
         </div>
       ) : (
         /* Meeting Cards */
@@ -395,8 +418,20 @@ export function ScheduleTab({
             onEdit={() => handleEditMeeting(meeting)}
             onToggleDateVote={(optionId) => onToggleDateVote(meeting.id, optionId)}
             onFinalizeDate={(date) => onFinalizeDate(meeting.id, date)}
+            onAddDateOption={(date) => onAddDateOption(meeting.id, date)}
+            onRemoveDateOption={(optionId) => onRemoveDateOption(meeting.id, optionId)}
           />
         ))
+      )}
+
+      {/* Second entry point into the form. Before this existed the only way to
+          reach it was the Vote tab, so a group that had already picked its book
+          elsewhere had no way to start a date poll at all. */}
+      {meetings.length > 0 && !showForm && (
+        <Button variant="outline" onClick={handleStartMeeting} className="w-full h-12 text-base">
+          <CalendarPlus className="h-4 w-4" />
+          Plan a meeting
+        </Button>
       )}
     </div>
   )
@@ -409,10 +444,12 @@ interface MeetingCardProps {
   onDelete: () => void
   onEdit: () => void
   onToggleDateVote: (optionId: string) => void
+  onAddDateOption: (date: string) => void
+  onRemoveDateOption: (optionId: string) => void
   onFinalizeDate: (date: string) => void
 }
 
-function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDateVote, onFinalizeDate }: MeetingCardProps) {
+function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDateVote, onAddDateOption, onRemoveDateOption, onFinalizeDate }: MeetingCardProps) {
   const [rsvpName, setRsvpName] = useState(userName)
   const [shareLabel, setShareLabel] = useState("Share")
   const [detailOpen, setDetailOpen] = useState(false)
@@ -564,6 +601,8 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                   options={meeting.dateOptions!}
                   userName={userName}
                   onToggleVote={onToggleDateVote}
+                  onAddOption={onAddDateOption}
+                  onRemoveOption={onRemoveDateOption}
                   onFinalize={onFinalizeDate}
                 />
               </div>

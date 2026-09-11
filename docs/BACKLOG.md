@@ -46,7 +46,11 @@ protocol in `CLAUDE.md`.
   Open question for Emily: should the book title be optional, so a poll can be
   started with the date first and the book filled in later?
 - **Size:** S
-- **Status:** Proposed
+- **Status:** **Shipped 2026-09-11.** "Plan a meeting" now appears on the RSVP
+  tab (and in its empty state), opening the existing form with nothing
+  prefilled and already switched to **Poll for dates** -- the reason people
+  come to that tab. Book title stays required: the group *does* know the book,
+  they just don't want to vote on it.
 
 ### 2. Add an extra date after a poll is already open
 - **Asked by:** Emily, 2026-09-11
@@ -63,8 +67,15 @@ protocol in `CLAUDE.md`.
   Probably raise the cap from 4 to ~6 at the same time — with 10+ people, four
   candidate dates is thin. Needs a rule for what happens to a date nobody picks
   (suggestion: let whoever added it remove it while it has no votes).
-- **Size:** S–M
-- **Status:** Proposed
+- **Size:** S-M
+- **Status:** **Shipped 2026-09-11.** "+ Add a date" row on any open poll;
+  the new date appears immediately with zero voters and nobody's existing
+  availability moves. Duplicate dates are refused (both in the UI and in
+  `lib/data.ts`, since two people can add the same night at once). Cap raised
+  4 -> 6, shared as `MAX_DATE_OPTIONS` so the create form and the live poll
+  can't drift. A date with **zero** votes can be removed by anyone; once
+  someone votes for it the control disappears, because removing it would
+  delete their answer -- enforced in `removeDateOption`, not just hidden.
 
 ### 3. Add a book the API can't find
 - **Asked by:** Emily, 2026-09-11
@@ -87,7 +98,25 @@ protocol in `CLAUDE.md`.
 - **Size:** S. No database change: `suggestions` already stores title, author,
   description and `cover_url` as plain values, and `cover_url` is already
   nullable with a gradient fallback in `book-cover.tsx`.
-- **Status:** Proposed
+- **Status:** **Shipped 2026-09-11**, as specced below.
+
+#### Two bugs the dogfooding caught that the assertions did not
+
+Both were found by *looking at the screenshots*, which is why the Ship Gate
+requires it:
+
+1. The escape-hatch button originally read `Add "<title>" anyway`. With a real
+   title it rendered as `Add "Swan Song: Diana, My Siste...` -- truncated past
+   the point of meaning. Now it reads **"Add it by hand"**, and the title is
+   echoed back in the confirmation panel where it can wrap.
+2. The confirmation copy rendered as **"Charles Spencerby hand"** -- JSX drops
+   the whitespace around a newline, so the space had to be explicit.
+
+A third came out of reading the flow: a hand-added book's description showed on
+the card and then vanished in the detail popup, which said "No description
+available" -- the popup only ever asked Open Library, the one place that by
+definition has nothing for these books. `BookDetailDialog` now takes a
+`fallbackDescription`.
 
 #### UX notes for #3 (2026-09-11)
 
@@ -98,8 +127,10 @@ as a second button next to "Search". A visible "add manually" option next to
 search invites people to skip the search, and then the club ends up with three
 spellings of the same book and no covers. Let the app try first, and offer the
 manual path at the exact moment it fails — that's also the moment the user has
-already typed the title and author, so the button can just say **"Add 'Swan
-Song' by Charles Spencer anyway"** and add it. One tap, nothing retyped.
+already typed the title and author, so nothing has to be retyped. (The button
+was going to name the book, but a real title truncates at 375px -- see the bugs
+above -- so it reads **"Add it by hand"** and the confirmation panel echoes the
+title back.)
 
 **What a manual book looks like on the card.** It has no cover and no
 description. `BookCover` already draws a nice title/author gradient when

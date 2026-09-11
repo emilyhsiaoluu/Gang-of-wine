@@ -9,12 +9,14 @@ import { Wine, BookOpen, Calendar, Heart, Archive } from "lucide-react"
 import { toast } from "sonner"
 import type { Meeting, SuggestedBook, Vote } from "@/lib/types"
 import {
+  addDateOption,
   addMeeting,
   addSuggestion,
   deleteMeeting,
   deleteSuggestion,
   fetchAppData,
   finalizeMeetingDate,
+  removeDateOption,
   reopenDatePoll,
   restoreSuggestion,
   toggleDateVote,
@@ -244,6 +246,28 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
     }
   }
 
+  const handleAddDateOption = async (meetingId: string, date: string) => {
+    track("date_option_added", { meeting_id: meetingId, date })
+    try {
+      await addDateOption(meetingId, date)
+      await refreshData()
+    } catch (error) {
+      console.error("Failed adding date option:", error)
+      setErrorMessage("Could not add that date. Please try again.")
+    }
+  }
+
+  const handleRemoveDateOption = async (meetingId: string, optionId: string) => {
+    track("date_option_removed", { meeting_id: meetingId, option_id: optionId })
+    try {
+      await removeDateOption(meetingId, optionId)
+      await refreshData()
+    } catch (error) {
+      console.error("Failed removing date option:", error)
+      setErrorMessage("Could not remove that date. Please try again.")
+    }
+  }
+
   const handleFinalizeDate = async (meetingId: string, date: string) => {
     track("date_poll_finalized", { meeting_id: meetingId, date })
     try {
@@ -408,6 +432,8 @@ export function BookClubApp({ userName, onEditName }: BookClubAppProps) {
               onDeleteMeeting={handleDeleteMeeting}
               onUpdateMeeting={handleUpdateMeeting}
               onToggleDateVote={handleToggleDateVote}
+              onAddDateOption={handleAddDateOption}
+              onRemoveDateOption={handleRemoveDateOption}
               onFinalizeDate={handleFinalizeDate}
               onReopenPoll={handleReopenPoll}
               prefillBook={scheduleFormBook}
