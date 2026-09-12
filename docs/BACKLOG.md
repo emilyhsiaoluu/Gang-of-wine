@@ -40,13 +40,13 @@ protocol in `CLAUDE.md`.
   prefill handed over from the Vote tab — so today the *sole* entry point is the
   Vote tab, and the empty state literally reads *"Head to Vote to schedule the
   next meeting."*
-- **Smallest version:** Add a "Plan a meeting" / "Start a date poll" button on
+- **Smallest version:** Add a "Schedule a meeting" button on
   the RSVP tab that opens the existing form with nothing prefilled, and rewrite
   the empty state to offer it. No new machinery, no database change.
   Open question for Emily: should the book title be optional, so a poll can be
   started with the date first and the book filled in later?
 - **Size:** S
-- **Status:** **Shipped 2026-09-11.** "Plan a meeting" now appears on the RSVP
+- **Status:** **Shipped 2026-09-11.** "Schedule a meeting" now appears on the RSVP
   tab (and in its empty state), opening the existing form with nothing
   prefilled and already switched to **Poll for dates** -- the reason people
   come to that tab. Book title stays required: the group *does* know the book,
@@ -100,7 +100,29 @@ protocol in `CLAUDE.md`.
   nullable with a gradient fallback in `book-cover.tsx`.
 - **Status:** **Shipped 2026-09-11**, as specced below.
 
-#### Two bugs the dogfooding caught that the assertions did not
+#### 🔴 The bug Emily's own dogfooding caught (2026-09-11)
+
+**The escape hatch only appeared when the search SUCCEEDED with zero results.**
+Gated on `hasSearched && !searchError && ...`, so when the request *failed* the
+user got a red error box and no way forward — the identical dead end the
+feature exists to remove, just triggered by a different cause. Emily hit it on
+her phone within minutes of starting to dogfood, while `openlibrary.org` was
+genuinely down (verified: HTTP 000 on the API, their covers host still up).
+
+A third-party outage is a far more common cause of "the search found nothing"
+than an unreleased book, so this was the more important half of the feature and
+it was the half that didn't work. Now the offer appears whenever the search
+comes back empty-handed, whichever way.
+
+The old error copy blamed her too — *"Check your network or any ad/privacy
+blockers"* — when the truth was that Open Library was down. It now reads
+*"Open Library is probably down — it's not your phone,"* with the technical
+detail demoted to a small grey line.
+
+Covered by a test that aborts every `openlibrary.org` request, so the outage
+path is exercised on every PR instead of only during a real outage.
+
+#### Two bugs the agent's dogfooding caught that the assertions did not
 
 Both were found by *looking at the screenshots*, which is why the Ship Gate
 requires it:
@@ -152,6 +174,18 @@ part of this. Each one is a bigger project than the problem, and the problem is
 "Emily can't add one specific book tonight."
 
 ---
+
+### Smoke tests were time bombs
+- **Found:** 2026-09-11, when two tests went red overnight without any code
+  change. `lib/demo-data.ts` builds its dates relative to *today*
+  (`isoDate(16)`, `isoDate(23)`), and the tests asserted hard-coded labels like
+  "Sun, Oct 4". They were guaranteed to fail on some future day for no real
+  reason — the worst kind of failure, because it teaches everyone to ignore CI.
+- **Fix:** tests derive the expected labels the same way the app does.
+- **Also:** the Open Library smoke test now accepts the outage state as a pass,
+  and the manual-add test stubs an empty result instead of depending on what
+  Open Library happens to hold. CI should never go red because a third party is.
+- **Status:** Shipped 2026-09-11
 
 ## Found while reading the code (not requested)
 

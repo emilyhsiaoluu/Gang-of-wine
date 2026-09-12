@@ -178,9 +178,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
     } catch (error) {
       console.error("Failed to search Open Library:", error)
       const detail = error instanceof Error ? error.message : String(error)
-      setSearchError(
-        `Couldn't reach Open Library (${detail}). Check your network or any ad/privacy blockers, then try again.`,
-      )
+      setSearchError(detail)
       setSearchResults([])
       setHasSearched(true)
     } finally {
@@ -328,23 +326,37 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                 />
               </div>
 
-              {searchError && (
-                <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {searchError}
-                </div>
-              )}
-
               {/* The escape hatch lives HERE and only here -- offered at the
-                  moment the search fails, not as a second button beside Search.
-                  A permanently visible "add manually" invites people to skip the
-                  search entirely, and the club ends up with three spellings of
-                  one book and no covers. See docs/BACKLOG.md item 3. */}
-              {hasSearched && !searchError && searchResults.length === 0 && !manualMode && (
-                <div className="rounded-md border border-border bg-muted/50 px-3 py-3 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    No matches found. Double-check the spelling, or try fewer words — some
-                    books aren&apos;t out yet, so there&apos;s nothing to find.
-                  </p>
+                  moment the search comes back empty-handed, not as a second
+                  button beside Search. A permanently visible "add manually"
+                  invites people to skip the search entirely, and the club ends
+                  up with three spellings of one book and no covers.
+                  It must cover BOTH ways the search can come back with nothing:
+                  zero results, and the request failing outright. Gating it on
+                  "no error" left an Open Library outage as a dead end with a
+                  red box and no way forward -- which is exactly what Emily hit
+                  on 2026-09-11 while openlibrary.org was down.
+                  See docs/BACKLOG.md item 3. */}
+              {hasSearched && searchResults.length === 0 && !manualMode && (
+                <div
+                  className={`rounded-md border px-3 py-3 space-y-3 ${
+                    searchError ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/50"
+                  }`}
+                >
+                  {searchError ? (
+                    <div className="space-y-1">
+                      <p className="text-sm text-foreground">
+                        Couldn&apos;t reach the book search. Open Library is probably down —
+                        it&apos;s not your phone.
+                      </p>
+                      <p className="text-xs text-muted-foreground break-words">{searchError}</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No matches found. Double-check the spelling, or try fewer words — some
+                      books aren&apos;t out yet, so there&apos;s nothing to find.
+                    </p>
+                  )}
                   <Button
                     type="button"
                     variant="outline"

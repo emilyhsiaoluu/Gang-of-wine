@@ -401,9 +401,9 @@ export function ScheduleTab({
               Pick a book over on Vote, or plan one right here.
             </p>
           </div>
-          <Button onClick={handleStartMeeting} className="w-full h-12 text-base">
-            <CalendarPlus className="h-4 w-4" />
-            Plan a meeting
+          <Button size="lg" onClick={handleStartMeeting} className="w-full h-16 text-lg">
+            <CalendarPlus className="mr-2 h-5 w-5" />
+            Schedule a meeting
           </Button>
         </div>
       ) : (
@@ -428,9 +428,9 @@ export function ScheduleTab({
           reach it was the Vote tab, so a group that had already picked its book
           elsewhere had no way to start a date poll at all. */}
       {meetings.length > 0 && !showForm && (
-        <Button variant="outline" onClick={handleStartMeeting} className="w-full h-12 text-base">
-          <CalendarPlus className="h-4 w-4" />
-          Plan a meeting
+        <Button size="lg" onClick={handleStartMeeting} className="w-full h-16 text-lg">
+          <CalendarPlus className="mr-2 h-5 w-5" />
+          Schedule a meeting
         </Button>
       )}
     </div>
