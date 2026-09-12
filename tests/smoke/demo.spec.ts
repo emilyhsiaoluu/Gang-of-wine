@@ -234,3 +234,31 @@ test("the schedule form says it does not search", async ({ page }) => {
   await page.getByRole("button", { name: "Schedule a meeting" }).click()
   await expect(page.getByText("this doesn't search")).toBeVisible()
 })
+
+test("a disabled Start Date Poll says what is still missing", async ({ page }) => {
+  // Emily filled in book, author and dates, never guessed Location was
+  // required, and concluded the book "wasn't locked in" (2026-09-11).
+  await page.getByRole("tab", { name: "RSVP" }).click()
+  await page.getByRole("button", { name: "Schedule a meeting" }).click()
+
+  const submit = page.getByRole("button", { name: "Start Date Poll" })
+  await page.getByPlaceholder("Enter book title").fill("Swan Song: Diana, My Sister")
+  await page.getByPlaceholder("Enter author name").fill("Charles Spencer")
+  const dates = page.locator('input[type="date"]')
+  await dates.nth(0).fill(demoDate(20).iso)
+  await dates.nth(1).fill(demoDate(21).iso)
+
+  // Exactly where she got stuck: it must now name the one thing left.
+  await expect(submit).toBeDisabled()
+  await expect(page.getByText("Still needed: a location.")).toBeVisible()
+
+  await page.getByPlaceholder("e.g., Emily's House").fill("Emily's House")
+  await expect(page.getByText(/Still needed/)).toHaveCount(0)
+  await expect(submit).toBeEnabled()
+})
+
+test("the missing-fields line stays quiet on an untouched form", async ({ page }) => {
+  await page.getByRole("tab", { name: "RSVP" }).click()
+  await page.getByRole("button", { name: "Schedule a meeting" }).click()
+  await expect(page.getByText(/Still needed/)).toHaveCount(0)
+})

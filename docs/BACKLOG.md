@@ -46,11 +46,30 @@ protocol in `CLAUDE.md`.
   Open question for Emily: should the book title be optional, so a poll can be
   started with the date first and the book filled in later?
 - **Size:** S
-- **Status:** **Shipped 2026-09-11.** "Schedule a meeting" now appears on the RSVP
+- **Status:** On the iteration branch, NOT in production. "Schedule a meeting" now appears on the RSVP
   tab (and in its empty state), opening the existing form with nothing
   prefilled and already switched to **Poll for dates** -- the reason people
   come to that tab. Book title stays required: the group *does* know the book,
   they just don't want to vote on it.
+
+#### Follow-up: the disabled button that wouldn't say why (2026-09-12)
+
+Emily filled in the book title, the author and two poll dates, and **Start
+Date Poll stayed greyed out.** Her read was that the book "wasn't locked in"
+because there was no Search or Done button after it — reasonable, and wrong.
+The fields are plain text and were fine. The blocker was **Location**, which
+is required and which nothing said was required.
+
+Proved it rather than guessed, by toggling one field at a time: book → still
+disabled, author → still disabled, two dates → still disabled, location →
+enabled.
+
+The bug is not the validation, it is the silence. A disabled primary action
+owes the user a reason. There is now a live line above the buttons — *"Still
+needed: a location."* — computed from the same expression that disables the
+button, so the two can't disagree. It stays quiet until she's started typing,
+since a four-item checklist on an untouched form is just noise, and Location
+is labelled `(required)`.
 
 ### 2. Add an extra date after a poll is already open
 - **Asked by:** Emily, 2026-09-11
@@ -68,7 +87,9 @@ protocol in `CLAUDE.md`.
   candidate dates is thin. Needs a rule for what happens to a date nobody picks
   (suggestion: let whoever added it remove it while it has no votes).
 - **Size:** S-M
-- **Status:** **Shipped 2026-09-11.** "+ Add a date" row on any open poll;
+- **Status:** ✅ **SHIPPED TO PRODUCTION 2026-09-12** (PR #33, commit 9437476,
+  health green, 51 production rows unchanged). Shipped on its own, ahead of
+  items 1 and 3, at Emily's call. "+ Add a date" row on any open poll;
   the new date appears immediately with zero voters and nobody's existing
   availability moves. Duplicate dates are refused (both in the UI and in
   `lib/data.ts`, since two people can add the same night at once). Cap raised

@@ -99,6 +99,26 @@ export function ScheduleTab({
     }
   }, [prefillBook, onPrefillUsed])
 
+  // What is still missing, in plain words. The submit button used to sit there
+  // greyed out with no explanation -- Emily filled in the book and the dates,
+  // never guessed that Location was required, and concluded the book "wasn't
+  // locked in" (2026-09-11). A disabled button owes the user a reason.
+  const isPollModeNow = dateMode === "poll" && !editingMeetingId
+  const distinctPollDates = [...new Set(pollDates.filter(Boolean))]
+  const missingFields: string[] = []
+  if (!formData.bookTitle.trim()) missingFields.push("a book title")
+  if (!formData.bookAuthor.trim()) missingFields.push("an author")
+  if (!formData.location.trim()) missingFields.push("a location")
+  if (isPollModeNow) {
+    if (distinctPollDates.length < 2) missingFields.push("two different dates")
+  } else if (!formData.date && !editingMeetingId) {
+    missingFields.push("a date")
+  }
+  // Only nag once she has started; a checklist on an untouched form is noise.
+  const formStarted =
+    !!formData.bookTitle.trim() || !!formData.bookAuthor.trim() ||
+    !!formData.location.trim() || !!formData.date || distinctPollDates.length > 0
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const timeValue = formData.time || "TBD"
@@ -416,7 +436,7 @@ export function ScheduleTab({
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="location">Location <span className="text-muted-foreground font-normal">(required)</span></Label>
                   <Input
                     id="location"
                     placeholder="e.g., Emily's House"
@@ -424,17 +444,15 @@ export function ScheduleTab({
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   />
                 </div>
+                {formStarted && missingFields.length > 0 && (
+                  <p className="text-sm text-muted-foreground pt-1">
+                    Still needed: {missingFields.join(", ")}.
+                  </p>
+                )}
                 <div className="flex gap-3 pt-2">
                   <Button
                     type="submit"
-                    disabled={
-                      !formData.bookTitle ||
-                      !formData.bookAuthor ||
-                      !formData.location ||
-                      (dateMode === "poll" && !editingMeetingId
-                        ? [...new Set(pollDates.filter(Boolean))].length < 2
-                        : !formData.date && !editingMeetingId)
-                    }
+                    disabled={missingFields.length > 0}
                   >
                     {editingMeetingId ? "Save Changes" : dateMode === "poll" ? "Start Date Poll" : "Add Meeting"}
                   </Button>
