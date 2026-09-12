@@ -92,6 +92,15 @@ test("a date can be added to an already-open poll without losing votes", async (
   await expect(poll.getByText("Sarah, Jess")).toBeVisible()
 })
 
+test("the same date cannot be added to a poll twice", async ({ page }) => {
+  await page.getByRole("tab", { name: "RSVP" }).click()
+  const poll = page.locator('[data-slot="card"]', { hasText: "The Midnight Library" })
+  await poll.getByRole("button", { name: "Add a date" }).click()
+  await poll.getByLabel("New date to add to the poll").fill(VOTED_OPTION.iso)
+  await expect(poll.getByText("That date is already on the poll.")).toBeVisible()
+  await expect(poll.getByRole("button", { name: "Add", exact: true })).toBeDisabled()
+})
+
 test("only a date nobody has voted for can be removed", async ({ page }) => {
   await page.getByRole("tab", { name: "RSVP" }).click()
   const poll = page.locator('[data-slot="card"]', { hasText: "The Midnight Library" })
