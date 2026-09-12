@@ -179,6 +179,32 @@ that way, and don't paste snapshot contents into a PR, an issue, or a chat.
 
 ---
 
+## Handing a change to Emily to try
+
+Your dogfooding is not her dogfooding. Yours proves it isn't broken; hers
+decides whether it's right. After the Ship Gate passes, give her all four of
+these — every time, unprompted:
+
+1. **The preview link, scannable.** She tests on her phone, and a Vercel
+   preview URL is ~80 characters. Generate a QR code for it and send it with
+   `SendUserFile`, plus the raw link as a fallback. Don't make her type it.
+2. **Which environment it is, in one line.** Preview = the staging database,
+   seeded from a production snapshot. She will see her real friends' names and
+   real books; say out loud that anything she taps there cannot reach the live
+   app, or she'll test timidly and find nothing.
+3. **A numbered tap-list, one per change**, each with what *good* looks like.
+   Not "try the new poll feature" — the exact taps, and the exact thing to see.
+   Three to five steps each, maximum.
+4. **What to do with a bug: tell you, don't merge.** And say plainly what you
+   already verified, so she spends her attention on judgment calls — is the
+   copy right, is the button in the right place — rather than re-checking
+   whether it functions.
+
+Only after she says yes: merge, then `curl .../api/health`, then tap through
+the same list once on production.
+
+---
+
 ## If production breaks — Emily's 60-second fix
 
 Tell her this, don't make her find it:
