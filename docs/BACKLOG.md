@@ -252,8 +252,13 @@ part of this. Each one is a bigger project than the problem, and the problem is
   It's additive and idempotent, and the code that understands the column has
   been live for two months, so the code-before-data rule is already satisfied.
   Run `pnpm backup` first anyway — that's the protocol.
-- **Size:** S (Emily, 2 min in the dashboard)
-- **Status:** Proposed
+- **Size:** S
+- **Status:** ✅ **RUN ON PRODUCTION 2026-09-12.** `Success. No rows returned.`
+  Verified independently of the dashboard: `suggestion_id` is now in the
+  `meetings` table read through the REST API, all four row counts unchanged
+  (13 / 12 / 5 / 21), `/api/health` green on all four tables. Production
+  backed up immediately beforehand. The "delete a meeting, get its book and
+  votes back on the Vote tab" behaviour is live rather than silently dead.
 
 ### `.env.local` points at a dead Supabase project
 - **Found:** 2026-09-11. The hostname in `.env.local` no longer resolves, so
