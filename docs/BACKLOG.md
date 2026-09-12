@@ -40,13 +40,36 @@ protocol in `CLAUDE.md`.
   prefill handed over from the Vote tab — so today the *sole* entry point is the
   Vote tab, and the empty state literally reads *"Head to Vote to schedule the
   next meeting."*
-- **Smallest version:** Add a "Plan a meeting" / "Start a date poll" button on
+- **Smallest version:** Add a "Schedule a meeting" button on
   the RSVP tab that opens the existing form with nothing prefilled, and rewrite
   the empty state to offer it. No new machinery, no database change.
   Open question for Emily: should the book title be optional, so a poll can be
   started with the date first and the book filled in later?
 - **Size:** S
-- **Status:** Proposed
+- **Status:** On the iteration branch, NOT in production. "Schedule a meeting" now appears on the RSVP
+  tab (and in its empty state), opening the existing form with nothing
+  prefilled and already switched to **Poll for dates** -- the reason people
+  come to that tab. Book title stays required: the group *does* know the book,
+  they just don't want to vote on it.
+
+#### Follow-up: the disabled button that wouldn't say why (2026-09-12)
+
+Emily filled in the book title, the author and two poll dates, and **Start
+Date Poll stayed greyed out.** Her read was that the book "wasn't locked in"
+because there was no Search or Done button after it — reasonable, and wrong.
+The fields are plain text and were fine. The blocker was **Location**, which
+is required and which nothing said was required.
+
+Proved it rather than guessed, by toggling one field at a time: book → still
+disabled, author → still disabled, two dates → still disabled, location →
+enabled.
+
+The bug is not the validation, it is the silence. A disabled primary action
+owes the user a reason. There is now a live line above the buttons — *"Still
+needed: a location."* — computed from the same expression that disables the
+button, so the two can't disagree. It stays quiet until she's started typing,
+since a four-item checklist on an untouched form is just noise, and Location
+is labelled `(required)`.
 
 ### 2. Add an extra date after a poll is already open
 - **Asked by:** Emily, 2026-09-11
@@ -63,8 +86,17 @@ protocol in `CLAUDE.md`.
   Probably raise the cap from 4 to ~6 at the same time — with 10+ people, four
   candidate dates is thin. Needs a rule for what happens to a date nobody picks
   (suggestion: let whoever added it remove it while it has no votes).
-- **Size:** S–M
-- **Status:** Proposed
+- **Size:** S-M
+- **Status:** ✅ **SHIPPED TO PRODUCTION 2026-09-12** (PR #33, commit 9437476,
+  health green, 51 production rows unchanged). Shipped on its own, ahead of
+  items 1 and 3, at Emily's call. "+ Add a date" row on any open poll;
+  the new date appears immediately with zero voters and nobody's existing
+  availability moves. Duplicate dates are refused (both in the UI and in
+  `lib/data.ts`, since two people can add the same night at once). Cap raised
+  4 -> 6, shared as `MAX_DATE_OPTIONS` so the create form and the live poll
+  can't drift. A date with **zero** votes can be removed by anyone; once
+  someone votes for it the control disappears, because removing it would
+  delete their answer -- enforced in `removeDateOption`, not just hidden.
 
 ### 3. Add a book the API can't find
 - **Asked by:** Emily, 2026-09-11
@@ -87,7 +119,47 @@ protocol in `CLAUDE.md`.
 - **Size:** S. No database change: `suggestions` already stores title, author,
   description and `cover_url` as plain values, and `cover_url` is already
   nullable with a gradient fallback in `book-cover.tsx`.
-- **Status:** Proposed
+- **Status:** **Shipped 2026-09-11**, as specced below.
+
+#### 🔴 The bug Emily's own dogfooding caught (2026-09-11)
+
+**The escape hatch only appeared when the search SUCCEEDED with zero results.**
+Gated on `hasSearched && !searchError && ...`, so when the request *failed* the
+user got a red error box and no way forward — the identical dead end the
+feature exists to remove, just triggered by a different cause. Emily hit it on
+her phone within minutes of starting to dogfood, while `openlibrary.org` was
+genuinely down (verified: HTTP 000 on the API, their covers host still up).
+
+A third-party outage is a far more common cause of "the search found nothing"
+than an unreleased book, so this was the more important half of the feature and
+it was the half that didn't work. Now the offer appears whenever the search
+comes back empty-handed, whichever way.
+
+The old error copy blamed her too — *"Check your network or any ad/privacy
+blockers"* — when the truth was that Open Library was down. It now reads
+*"Open Library is probably down — it's not your phone,"* with the technical
+detail demoted to a small grey line.
+
+Covered by a test that aborts every `openlibrary.org` request, so the outage
+path is exercised on every PR instead of only during a real outage.
+
+#### Two bugs the agent's dogfooding caught that the assertions did not
+
+Both were found by *looking at the screenshots*, which is why the Ship Gate
+requires it:
+
+1. The escape-hatch button originally read `Add "<title>" anyway`. With a real
+   title it rendered as `Add "Swan Song: Diana, My Siste...` -- truncated past
+   the point of meaning. Now it reads **"Add it by hand"**, and the title is
+   echoed back in the confirmation panel where it can wrap.
+2. The confirmation copy rendered as **"Charles Spencerby hand"** -- JSX drops
+   the whitespace around a newline, so the space had to be explicit.
+
+A third came out of reading the flow: a hand-added book's description showed on
+the card and then vanished in the detail popup, which said "No description
+available" -- the popup only ever asked Open Library, the one place that by
+definition has nothing for these books. `BookDetailDialog` now takes a
+`fallbackDescription`.
 
 #### UX notes for #3 (2026-09-11)
 
@@ -98,8 +170,10 @@ as a second button next to "Search". A visible "add manually" option next to
 search invites people to skip the search, and then the club ends up with three
 spellings of the same book and no covers. Let the app try first, and offer the
 manual path at the exact moment it fails — that's also the moment the user has
-already typed the title and author, so the button can just say **"Add 'Swan
-Song' by Charles Spencer anyway"** and add it. One tap, nothing retyped.
+already typed the title and author, so nothing has to be retyped. (The button
+was going to name the book, but a real title truncates at 375px -- see the bugs
+above -- so it reads **"Add it by hand"** and the confirmation panel echoes the
+title back.)
 
 **What a manual book looks like on the card.** It has no cover and no
 description. `BookCover` already draws a nice title/author gradient when
@@ -122,6 +196,18 @@ part of this. Each one is a bigger project than the problem, and the problem is
 
 ---
 
+### Smoke tests were time bombs
+- **Found:** 2026-09-11, when two tests went red overnight without any code
+  change. `lib/demo-data.ts` builds its dates relative to *today*
+  (`isoDate(16)`, `isoDate(23)`), and the tests asserted hard-coded labels like
+  "Sun, Oct 4". They were guaranteed to fail on some future day for no real
+  reason — the worst kind of failure, because it teaches everyone to ignore CI.
+- **Fix:** tests derive the expected labels the same way the app does.
+- **Also:** the Open Library smoke test now accepts the outage state as a pass,
+  and the manual-add test stubs an empty result instead of depending on what
+  Open Library happens to hold. CI should never go red because a third party is.
+- **Status:** Shipped 2026-09-11
+
 ## Found while reading the code (not requested)
 
 ### Hydration error on load
@@ -131,6 +217,48 @@ part of this. Each one is a bigger project than the problem, and the problem is
   this class of bug shows up later as content flashing or a blank screen.
 - **Size:** S
 - **Status:** Proposed — worth fixing before it's blamed on a feature.
+
+### Staging was down — RESOLVED 2026-09-11
+- **Symptom:** the preview's `/api/health` returned `"ok": false` with `fetch
+  failed` on all four tables while every env var was present, and
+  `mfsurihnjrslnghlasvt.supabase.co` would not resolve in DNS.
+- **First call was wrong.** Diagnosed as deleted, on the reasoning that a
+  paused free-tier project still resolves. It doesn't — **a paused Supabase
+  project stops resolving, which looks identical to a deleted one from
+  outside.** The dashboard is the only place that distinguishes them; check it
+  before concluding anything is gone.
+- **Actual cause:** the project ("Emily's Apps", shared with her other apps —
+  hence the `gow_` table prefix) had auto-paused after ~7 days idle.
+- **Fix:** Resume project in the dashboard. Data intact, no new project, no env
+  var changes, ~3 minutes. Preview `/api/health` green again.
+- **Then seeded it from production** with `pnpm seed-staging --replace` — all
+  50 rows. It had held 2 rows, which is the "empty staging hides the bugs worth
+  catching" case exactly.
+- **Left over:** it will pause again after ~7 days idle. Not worth automating
+  around; just recognise the symptom. Upgrading that org to Pro would stop it,
+  which is a money question for Emily, not a technical one.
+- **Status:** Shipped 2026-09-11
+
+### The `suggestion_id` migration never ran on production
+- **Found:** 2026-09-11, in the first-ever production backup — the `meetings`
+  table has no `suggestion_id` column, though `sql/2026-07-suggestion-link.sql`
+  has been sitting in the repo since July.
+- **What it costs:** nothing crashes — `addMeeting` catches the error and
+  retries without the field. But the feature it powers is silently dead:
+  deleting a meeting is supposed to return its book, votes intact, to the Vote
+  tab, and today it just doesn't. A feature that quietly does nothing is worse
+  than one that's missing, because nobody reports it.
+- **Fix:** run `sql/2026-07-suggestion-link.sql` in the Supabase SQL editor.
+  It's additive and idempotent, and the code that understands the column has
+  been live for two months, so the code-before-data rule is already satisfied.
+  Run `pnpm backup` first anyway — that's the protocol.
+- **Size:** S
+- **Status:** ✅ **RUN ON PRODUCTION 2026-09-12.** `Success. No rows returned.`
+  Verified independently of the dashboard: `suggestion_id` is now in the
+  `meetings` table read through the REST API, all four row counts unchanged
+  (13 / 12 / 5 / 21), `/api/health` green on all four tables. Production
+  backed up immediately beforehand. The "delete a meeting, get its book and
+  votes back on the Vote tab" behaviour is live rather than silently dead.
 
 ### `.env.local` points at a dead Supabase project
 - **Found:** 2026-09-11. The hostname in `.env.local` no longer resolves, so

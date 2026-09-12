@@ -10,6 +10,11 @@ interface BookDetailDialogProps {
   title: string
   author: string
   coverUrl?: string
+  /** Description stored on the suggestion itself. Used when Open Library has
+   *  nothing -- a book added by hand is exactly the book the API can't find,
+   *  so without this the note the suggester wrote would show on the card and
+   *  then vanish in this dialog. */
+  fallbackDescription?: string
 }
 
 async function searchOpenLibrary(query: URLSearchParams): Promise<{ key?: string; firstSentence?: string } | null> {
@@ -70,7 +75,7 @@ function getHighResCoverUrl(url: string): string {
   return url.replace(/-[SM]\.jpg$/, "-L.jpg")
 }
 
-export function BookDetailDialog({ open, onClose, title, author, coverUrl }: BookDetailDialogProps) {
+export function BookDetailDialog({ open, onClose, title, author, coverUrl, fallbackDescription }: BookDetailDialogProps) {
   const [description, setDescription] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -79,10 +84,10 @@ export function BookDetailDialog({ open, onClose, title, author, coverUrl }: Boo
     setDescription(null)
     setLoading(true)
     fetchBookDescription(title, author).then((desc) => {
-      setDescription(desc)
+      setDescription(desc ?? fallbackDescription ?? null)
       setLoading(false)
     })
-  }, [open, title, author])
+  }, [open, title, author, fallbackDescription])
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>

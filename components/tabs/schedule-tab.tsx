@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MapPin, Clock, Calendar, X, Share2, Vote, Plus } from "lucide-react"
+import { MapPin, Clock, Calendar, CalendarPlus, X, Share2, Vote, Plus } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
 import { CardActionBar } from "@/components/card-action-bar"
@@ -69,6 +69,14 @@ export function ScheduleTab({
   const [pollDates, setPollDates] = useState<string[]>(["", ""])
   const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null)
   const [showReopenConfirm, setShowReopenConfirm] = useState(false)
+  const formRef = useRef<HTMLDivElement>(null)
+
+  // Whichever way the form opened -- the button below it, the edit chips on a
+  // card above it, or a book handed over from the Vote tab -- bring it into
+  // view. Without this the user taps and nothing visibly happens.
+  useEffect(() => {
+    if (showForm) formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [showForm])
 
   const editingMeeting = editingMeetingId ? meetings.find((m) => m.id === editingMeetingId) : null
   const canReopenPoll = !!editingMeeting?.date && (editingMeeting.dateOptions?.length ?? 0) > 0
@@ -90,6 +98,26 @@ export function ScheduleTab({
       onPrefillUsed?.()
     }
   }, [prefillBook, onPrefillUsed])
+
+  // What is still missing, in plain words. The submit button used to sit there
+  // greyed out with no explanation -- Emily filled in the book and the dates,
+  // never guessed that Location was required, and concluded the book "wasn't
+  // locked in" (2026-09-11). A disabled button owes the user a reason.
+  const isPollModeNow = dateMode === "poll" && !editingMeetingId
+  const distinctPollDates = [...new Set(pollDates.filter(Boolean))]
+  const missingFields: string[] = []
+  if (!formData.bookTitle.trim()) missingFields.push("a book title")
+  if (!formData.bookAuthor.trim()) missingFields.push("an author")
+  if (!formData.location.trim()) missingFields.push("a location")
+  if (isPollModeNow) {
+    if (distinctPollDates.length < 2) missingFields.push("two different dates")
+  } else if (!formData.date && !editingMeetingId) {
+    missingFields.push("a date")
+  }
+  // Only nag once she has started; a checklist on an untouched form is noise.
+  const formStarted =
+    !!formData.bookTitle.trim() || !!formData.bookAuthor.trim() ||
+    !!formData.location.trim() || !!formData.date || distinctPollDates.length > 0
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -145,6 +173,19 @@ export function ScheduleTab({
     })
     setEditingMeetingId(meeting.id)
     setDateMode("single")
+    setShowForm(true)
+  }
+
+  // Opening the meeting form straight from the RSVP tab, with no book handed
+  // over from Vote. The group often picks the book off-platform and only needs
+  // a date, so this defaults to poll mode -- finding a night that works for ten
+  // people is the reason they came here.
+  const handleStartMeeting = () => {
+    setFormData({ bookTitle: "", bookAuthor: "", bookCoverUrl: "", date: "", time: "", location: "" })
+    setPrefillBookId(null)
+    setEditingMeetingId(null)
+    setDateMode("poll")
+    setPollDates(["", ""])
     setShowForm(true)
   }
 
@@ -215,177 +256,18 @@ export function ScheduleTab({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add/Edit Meeting Form */}
-      {showForm && (
-        <Card className="border-primary/20 bg-card">
-          <CardContent className="pt-6">
-            <h3 className="font-serif text-xl font-semibold mb-4 text-foreground">
-              {editingMeetingId ? "Edit Meeting" : "Schedule a Meeting"}
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bookTitle">Book Title</Label>
-                  <Input
-                    id="bookTitle"
-                    placeholder="Enter book title"
-                    value={formData.bookTitle}
-                    onChange={(e) => setFormData({ ...formData, bookTitle: e.target.value })}
-                    disabled={!!editingMeetingId}
-                    className={editingMeetingId ? "bg-muted" : ""}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bookAuthor">Author</Label>
-                  <Input
-                    id="bookAuthor"
-                    placeholder="Enter author name"
-                    value={formData.bookAuthor}
-                    onChange={(e) => setFormData({ ...formData, bookAuthor: e.target.value })}
-                    disabled={!!editingMeetingId}
-                    className={editingMeetingId ? "bg-muted" : ""}
-                  />
-                </div>
-              </div>
-              {/* Set a date vs. poll for dates */}
-              {!editingMeetingId && (
-                <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-muted">
-                  <button
-                    type="button"
-                    onClick={() => setDateMode("single")}
-                    className={`flex items-center justify-center gap-1.5 h-10 rounded-md text-sm font-medium transition-colors ${
-                      dateMode === "single" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    <Calendar className="h-4 w-4" />
-                    Set a date
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDateMode("poll")}
-                    className={`flex items-center justify-center gap-1.5 h-10 rounded-md text-sm font-medium transition-colors ${
-                      dateMode === "poll" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    <Vote className="h-4 w-4" />
-                    Poll for dates
-                  </button>
-                </div>
-              )}
-
-              {dateMode === "poll" && !editingMeetingId ? (
-                <div className="space-y-2">
-                  <Label>Date options (pick 2&ndash;{MAX_DATE_OPTIONS}, the gang votes on availability)</Label>
-                  {pollDates.map((date, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Input
-                        type="date"
-                        value={date}
-                        onChange={(e) => {
-                          const next = [...pollDates]
-                          next[i] = e.target.value
-                          setPollDates(next)
-                        }}
-                      />
-                      {pollDates.length > 2 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9 flex-shrink-0 text-muted-foreground"
-                          onClick={() => setPollDates(pollDates.filter((_, j) => j !== i))}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  {pollDates.length < MAX_DATE_OPTIONS && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => setPollDates([...pollDates, ""])}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add another date
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="time">Time</Label>
-                    <TimePicker
-                      value={formData.time}
-                      onChange={(v) => setFormData({ ...formData, time: v })}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  placeholder="e.g., Emily's House"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button
-                  type="submit"
-                  disabled={
-                    !formData.bookTitle ||
-                    !formData.bookAuthor ||
-                    !formData.location ||
-                    (dateMode === "poll" && !editingMeetingId
-                      ? [...new Set(pollDates.filter(Boolean))].length < 2
-                      : !formData.date && !editingMeetingId)
-                  }
-                >
-                  {editingMeetingId ? "Save Changes" : dateMode === "poll" ? "Start Date Poll" : "Add Meeting"}
-                </Button>
-                <Button type="button" variant="outline" onClick={handleCancelForm}>
-                  Cancel
-                </Button>
-              </div>
-              {canReopenPoll && (
-                <div className="border-t border-border pt-3 mt-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-11 gap-1.5 text-primary hover:text-primary hover:bg-primary/10 -ml-3"
-                    onClick={() => setShowReopenConfirm(true)}
-                  >
-                    <Vote className="h-4 w-4" />
-                    Date no longer works? Reopen the poll
-                  </Button>
-                </div>
-              )}
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
       {meetings.length === 0 && !showForm ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <div className="text-center mb-8">
-              <h3 className="font-serif text-xl text-foreground mb-2">No meetings yet</h3>
-            <p className="text-muted-foreground">Head to Vote to schedule the next meeting.</p>
+          <div className="text-center mb-6">
+            <h3 className="font-serif text-xl text-foreground mb-2">No meetings yet</h3>
+            <p className="text-muted-foreground">
+              Pick a book over on Vote, or plan one right here.
+            </p>
           </div>
+          <Button size="lg" onClick={handleStartMeeting} className="w-full h-16 text-lg">
+            <CalendarPlus className="mr-2 h-5 w-5" />
+            Schedule a meeting
+          </Button>
         </div>
       ) : (
         /* Meeting Cards */
@@ -398,12 +280,205 @@ export function ScheduleTab({
             onDelete={() => setMeetingToDelete(meeting.id)}
             onEdit={() => handleEditMeeting(meeting)}
             onToggleDateVote={(optionId) => onToggleDateVote(meeting.id, optionId)}
+            onFinalizeDate={(date) => onFinalizeDate(meeting.id, date)}
             onAddDateOption={(date) => onAddDateOption(meeting.id, date)}
             onRemoveDateOption={(optionId) => onRemoveDateOption(meeting.id, optionId)}
-            onFinalizeDate={(date) => onFinalizeDate(meeting.id, date)}
           />
         ))
       )}
+
+      {/* Second entry point into the form. Before this existed the only way to
+          reach it was the Vote tab, so a group that had already picked its book
+          elsewhere had no way to start a date poll at all. */}
+      {meetings.length > 0 && !showForm && (
+        <Button size="lg" onClick={handleStartMeeting} className="w-full h-16 text-lg">
+          <CalendarPlus className="mr-2 h-5 w-5" />
+          Schedule a meeting
+        </Button>
+      )}
+
+      {/* The form lives HERE, in the button's place, not at the top of the tab.
+          It used to render above the meeting cards while the button sat at the
+          bottom, so tapping the button opened a form that was off-screen above
+          you (Emily, 2026-09-11). Keeping them together also keeps the meeting
+          you actually came to RSVP to at the top of the tab, where it belongs.
+          formRef + the effect below cover the other two ways this form opens --
+          editing a meeting, and arriving prefilled from the Vote tab -- where
+          the form can still land outside the viewport. */}
+      <div ref={formRef}>
+        {/* Add/Edit Meeting Form */}
+        {showForm && (
+          <Card className="border-primary/20 bg-card">
+            <CardContent className="pt-6">
+              <h3 className="font-serif text-xl font-semibold mb-4 text-foreground">
+                {editingMeetingId ? "Edit Meeting" : "Schedule a Meeting"}
+              </h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bookTitle">Book Title</Label>
+                    <Input
+                      id="bookTitle"
+                      placeholder="Enter book title"
+                      value={formData.bookTitle}
+                      onChange={(e) => setFormData({ ...formData, bookTitle: e.target.value })}
+                      disabled={!!editingMeetingId}
+                      className={editingMeetingId ? "bg-muted" : ""}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bookAuthor">Author</Label>
+                    <Input
+                      id="bookAuthor"
+                      placeholder="Enter author name"
+                      value={formData.bookAuthor}
+                      onChange={(e) => setFormData({ ...formData, bookAuthor: e.target.value })}
+                      disabled={!!editingMeetingId}
+                      className={editingMeetingId ? "bg-muted" : ""}
+                    />
+                  </div>
+                </div>
+                {/* This form has never searched anything -- both fields are
+                    plain text. Emily went looking for the Vote tab's "enter it
+                    by hand" escape hatch here (2026-09-11), which means the
+                    form wasn't saying so. One line is cheaper than importing
+                    the whole search. */}
+                {!editingMeetingId && (
+                  <p className="text-xs text-muted-foreground -mt-2">
+                    Type any book — this doesn&apos;t search, so books that aren&apos;t out yet are fine. 📚
+                  </p>
+                )}
+                {/* Set a date vs. poll for dates */}
+                {!editingMeetingId && (
+                  <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-muted">
+                    <button
+                      type="button"
+                      onClick={() => setDateMode("single")}
+                      className={`flex items-center justify-center gap-1.5 h-10 rounded-md text-sm font-medium transition-colors ${
+                        dateMode === "single" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
+                      }`}
+                    >
+                      <Calendar className="h-4 w-4" />
+                      Set a date
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDateMode("poll")}
+                      className={`flex items-center justify-center gap-1.5 h-10 rounded-md text-sm font-medium transition-colors ${
+                        dateMode === "poll" ? "bg-card text-primary shadow-sm" : "text-muted-foreground"
+                      }`}
+                    >
+                      <Vote className="h-4 w-4" />
+                      Poll for dates
+                    </button>
+                  </div>
+                )}
+
+                {dateMode === "poll" && !editingMeetingId ? (
+                  <div className="space-y-2">
+                    <Label>Date options (pick 2&ndash;{MAX_DATE_OPTIONS}, the gang votes on availability)</Label>
+                    {pollDates.map((date, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Input
+                          type="date"
+                          value={date}
+                          onChange={(e) => {
+                            const next = [...pollDates]
+                            next[i] = e.target.value
+                            setPollDates(next)
+                          }}
+                        />
+                        {pollDates.length > 2 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 flex-shrink-0 text-muted-foreground"
+                            onClick={() => setPollDates(pollDates.filter((_, j) => j !== i))}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    {pollDates.length < MAX_DATE_OPTIONS && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => setPollDates([...pollDates, ""])}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add another date
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Time</Label>
+                      <TimePicker
+                        value={formData.time}
+                        onChange={(v) => setFormData({ ...formData, time: v })}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location <span className="text-muted-foreground font-normal">(required)</span></Label>
+                  <Input
+                    id="location"
+                    placeholder="e.g., Emily's House"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  />
+                </div>
+                {formStarted && missingFields.length > 0 && (
+                  <p className="text-sm text-muted-foreground pt-1">
+                    Still needed: {missingFields.join(", ")}.
+                  </p>
+                )}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="submit"
+                    disabled={missingFields.length > 0}
+                  >
+                    {editingMeetingId ? "Save Changes" : dateMode === "poll" ? "Start Date Poll" : "Add Meeting"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleCancelForm}>
+                    Cancel
+                  </Button>
+                </div>
+                {canReopenPoll && (
+                  <div className="border-t border-border pt-3 mt-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-11 gap-1.5 text-primary hover:text-primary hover:bg-primary/10 -ml-3"
+                      onClick={() => setShowReopenConfirm(true)}
+                    >
+                      <Vote className="h-4 w-4" />
+                      Date no longer works? Reopen the poll
+                    </Button>
+                  </div>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }

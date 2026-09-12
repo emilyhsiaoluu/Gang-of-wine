@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Heart, Trophy, Calendar, Lightbulb, Plus, X, Loader2, Search, Star, Share2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Heart, Trophy, Calendar, Lightbulb, Plus, PenLine, X, Loader2, Search, Star, Share2 } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
 import { CardActionBar } from "@/components/card-action-bar"
@@ -118,7 +119,12 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   const [selectedBook, setSelectedBook] = useState<BookMatch | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
-  const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string } | null>(null)
+  // Set when the book isn't in Open Library at all -- unreleased titles, small
+  // presses -- and the group is adding it by hand instead. See docs/BACKLOG.md.
+  const [manualMode, setManualMode] = useState(false)
+  const [manualDescription, setManualDescription] = useState("")
+  const manualPanelRef = useRef<HTMLDivElement>(null)
+  const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string; description?: string } | null>(null)
   const [cardData, setCardData] = useState<Record<string, CardBookData>>({})
   const fetchedIdsRef = useRef<Set<string>>(new Set())
   const [shareLabels, setShareLabels] = useState<Record<string, string>>({})
@@ -134,11 +140,20 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
     })
   }, [suggestions])
 
+  // Bring the manual-entry panel into view when it opens. Its Add button sits
+  // below the fold on a phone otherwise, which is what made the whole thing
+  // read as "the button doesn't work" (Emily, 2026-09-11).
+  useEffect(() => {
+    if (manualMode) manualPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [manualMode])
+
   const resetSearchState = () => {
     setSearchResults([])
     setSelectedBook(null)
     setSearchError(null)
     setHasSearched(false)
+    setManualMode(false)
+    setManualDescription("")
   }
 
   const getVoteCount = (bookId: string) => votes.filter(v => v.bookId === bookId).length
@@ -163,6 +178,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
     setIsLoading(true)
     setSearchError(null)
     setSelectedBook(null)
+    setManualMode(false)
     try {
       const results = await searchBooks(formData.title, formData.author)
       setSearchResults(results)
@@ -170,14 +186,30 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
     } catch (error) {
       console.error("Failed to search Open Library:", error)
       const detail = error instanceof Error ? error.message : String(error)
-      setSearchError(
-        `Couldn't reach Open Library (${detail}). Check your network or any ad/privacy blockers, then try again.`,
-      )
+      setSearchError(detail)
       setSearchResults([])
       setHasSearched(true)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Adding a book the API has never heard of. No cover URL is guessed here --
+  // Open Library's by-title cover endpoint would 404 for exactly these books,
+  // and BookCover already falls back to a title/author gradient when coverUrl
+  // is missing.
+  const handleManualAdd = () => {
+    const title = formData.title.trim()
+    const author = formData.author.trim()
+    if (!title || !author) return
+    onSuggest({
+      title,
+      author,
+      description: manualDescription.trim() || undefined,
+    })
+    setFormData({ title: "", author: "" })
+    resetSearchState()
+    setShowForm(false)
   }
 
   const handleConfirmAdd = () => {
@@ -234,6 +266,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
         title={detailBook?.title ?? ""}
         author={detailBook?.author ?? ""}
         coverUrl={detailBook?.coverUrl}
+        fallbackDescription={detailBook?.description}
       />
 
       {/* Header */}
@@ -301,15 +334,111 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                 />
               </div>
 
-              {searchError && (
-                <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {searchError}
+              {/* The escape hatch lives HERE and only here -- offered at the
+                  moment the search comes back empty-handed, not as a second
+                  button beside Search. A permanently visible "add manually"
+                  invites people to skip the search entirely, and the club ends
+                  up with three spellings of one book and no covers.
+                  It must cover BOTH ways the search can come back with nothing:
+                  zero results, and the request failing outright. Gating it on
+                  "no error" left an Open Library outage as a dead end with a
+                  red box and no way forward -- which is exactly what Emily hit
+                  on 2026-09-11 while openlibrary.org was down.
+                  See docs/BACKLOG.md item 3. */}
+              {hasSearched && searchResults.length === 0 && !manualMode && (
+                <div
+                  className={`rounded-md border px-3 py-3 space-y-3 ${
+                    searchError ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/50"
+                  }`}
+                >
+                  {searchError ? (
+                    <div className="space-y-1">
+                      <p className="text-sm text-foreground">
+                        Couldn&apos;t reach the book search. Open Library is probably down —
+                        it&apos;s not your phone.
+                      </p>
+                      <p className="text-xs text-muted-foreground break-words">{searchError}</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No matches found. Double-check the spelling, or try fewer words — some
+                      books aren&apos;t out yet, so there&apos;s nothing to find.
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-11 text-sm"
+                    onClick={() => setManualMode(true)}
+                    disabled={!formData.title.trim() || !formData.author.trim()}
+                  >
+                    {/* Not "Add it by hand" -- that label promises the book is
+                        added, but this only opens a panel, so people tap it and
+                        believe nothing happened (Emily, 2026-09-11). It names
+                        the step it actually performs; the panel below carries
+                        the button that commits. And not "Add <title> anyway"
+                        either: a real title truncates to nonsense at 375px. */}
+                    <PenLine className="mr-2 h-4 w-4" />
+                    Enter it by hand instead
+                  </Button>
+                  {(!formData.title.trim() || !formData.author.trim()) && (
+                    <p className="text-xs text-muted-foreground">
+                      Fill in both the title and the author to add it by hand.
+                    </p>
+                  )}
                 </div>
               )}
 
-              {hasSearched && !searchError && searchResults.length === 0 && (
-                <div className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-                  No matches found. Double-check the spelling, or try fewer words.
+              {manualMode && (
+                <div
+                  ref={manualPanelRef}
+                  className="rounded-md border border-primary/30 bg-primary/5 px-3 py-3 space-y-3"
+                >
+                  <p className="text-sm text-foreground">
+                    {/* JSX drops the whitespace around a newline, so the space
+                        after the author has to be explicit or it renders as
+                        "Charles Spencerby hand". */}
+                    Adding <span className="font-medium">{formData.title.trim()}</span> by{" "}
+                    {formData.author.trim()}{" "}
+                    by hand. It won&apos;t have a cover — that&apos;s expected. 📚
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="manualDescription">Description</Label>
+                    <Textarea
+                      id="manualDescription"
+                      placeholder="Optional — why this one?"
+                      value={manualDescription}
+                      onChange={(e) => setManualDescription(e.target.value)}
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Nobody can look this one up either, so a sentence helps the gang.
+                    </p>
+                  </div>
+                  {/* The commit button lives in the panel, not only in the
+                      button stack below. On a phone that stack sits under the
+                      fold, so the panel appeared to be a dead end. */}
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="w-full h-12 text-base"
+                    onClick={handleManualAdd}
+                    disabled={isLoading || !formData.title.trim() || !formData.author.trim()}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Suggestion
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-11 w-full text-sm text-muted-foreground"
+                    onClick={() => {
+                      setManualMode(false)
+                      setManualDescription("")
+                    }}
+                  >
+                    Never mind, let me search again
+                  </Button>
                 </div>
               )}
 
@@ -355,6 +484,10 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
               )}
 
               <div className="flex flex-col gap-3 pt-2">
+                {/* In manual mode the panel above owns the primary action, so
+                    Search and a second Add Suggestion would be two competing
+                    buttons for one job. */}
+                {!manualMode && (
                 <Button
                   type="button"
                   variant="outline"
@@ -375,16 +508,19 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     </>
                   )}
                 </Button>
+                )}
+                {!manualMode && (
                 <Button
                   type="button"
                   size="lg"
                   className="w-full h-12 text-base"
                   onClick={handleConfirmAdd}
-                  disabled={!selectedBook || isLoading}
+                  disabled={isLoading || !selectedBook}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Suggestion
                 </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -437,7 +573,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                   {/* Tappable: cover + title + author + description */}
                   <div
                     className="flex gap-4 cursor-pointer"
-                    onClick={() => setDetailBook({ title: book.title, author: book.author, coverUrl: book.coverUrl })}
+                    onClick={() => setDetailBook({ title: book.title, author: book.author, coverUrl: book.coverUrl, description: book.description })}
                   >
                     <BookCover
                       title={book.title}
@@ -454,10 +590,18 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                       </div>
                       <p className="text-muted-foreground text-sm">{book.author}</p>
                       <p className="text-xs text-muted-foreground mt-1">Suggested by {book.suggestedBy}</p>
-                      {cardData[book.id]?.description && (
+                      {/* A book added by hand has no cover, so its card looks
+                          different from every other card. Saying why turns an
+                          apparent bug into an obvious state. */}
+                      {!book.coverUrl && (
+                        <p className="text-xs text-muted-foreground/80 mt-1 italic">
+                          Added by hand — no cover yet
+                        </p>
+                      )}
+                      {(cardData[book.id]?.description || book.description) && (
                         <div className="mt-2">
                           <p className="text-sm text-muted-foreground line-clamp-3">
-                            {cardData[book.id].description}
+                            {cardData[book.id]?.description ?? book.description}
                           </p>
                           <span className="text-xs text-primary font-medium">more</span>
                         </div>
