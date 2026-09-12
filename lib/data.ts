@@ -301,6 +301,74 @@ export async function toggleDateVote(meetingId: string, optionId: string, voterN
   if (updateError) throw updateError
 }
 
+// Adds a candidate date to a poll that is already open, leaving every existing
+// option and vote untouched. Reads the current options and writes the whole
+// array back, exactly like toggleDateVote -- date_options is a jsonb column, so
+// no migration is needed for this.
+export async function addDateOption(meetingId: string, date: string) {
+  const option: DateOption = { id: `opt-${Date.now()}`, date, voters: [] }
+
+  if (isDemoMode()) {
+    const meeting = getDemoState().meetings.find((m) => m.id === meetingId)
+    if (!meeting) return
+    const options = meeting.dateOptions ?? []
+    if (options.some((o) => o.date === date)) return
+    meeting.dateOptions = [...options, option].sort((a, b) => a.date.localeCompare(b.date))
+    return
+  }
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from(table("meetings"))
+    .select("date_options")
+    .eq("id", meetingId)
+    .single()
+  if (error) throw error
+
+  const options = (data?.date_options ?? []) as DateOption[]
+  // Two people can add the same night at once; last write would win and
+  // produce a duplicate row in the poll, so drop it here too.
+  if (options.some((o) => o.date === date)) return
+  const updated = [...options, option].sort((a, b) => a.date.localeCompare(b.date))
+
+  const { error: updateError } = await supabase
+    .from(table("meetings"))
+    .update({ date_options: updated })
+    .eq("id", meetingId)
+  if (updateError) throw updateError
+}
+
+// Removes a candidate date. Refuses if anyone has voted for it -- the UI hides
+// the control in that case, but this is the guard that matters, since removing
+// a voted option would silently delete other people's availability.
+export async function removeDateOption(meetingId: string, optionId: string) {
+  if (isDemoMode()) {
+    const meeting = getDemoState().meetings.find((m) => m.id === meetingId)
+    if (!meeting?.dateOptions) return
+    const target = meeting.dateOptions.find((o) => o.id === optionId)
+    if (!target || target.voters.length > 0) return
+    meeting.dateOptions = meeting.dateOptions.filter((o) => o.id !== optionId)
+    return
+  }
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase
+    .from(table("meetings"))
+    .select("date_options")
+    .eq("id", meetingId)
+    .single()
+  if (error) throw error
+
+  const options = (data?.date_options ?? []) as DateOption[]
+  const target = options.find((o) => o.id === optionId)
+  if (!target || target.voters.length > 0) return
+  const updated = options.filter((o) => o.id !== optionId)
+
+  const { error: updateError } = await supabase
+    .from(table("meetings"))
+    .update({ date_options: updated })
+    .eq("id", meetingId)
+  if (updateError) throw updateError
+}
+
 export async function finalizeMeetingDate(meetingId: string, date: string) {
   // Options (and everyone's availability votes) are kept so the poll can be
   // reopened later if the locked-in date stops working.

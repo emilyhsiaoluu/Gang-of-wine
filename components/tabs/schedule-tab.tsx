@@ -19,7 +19,7 @@ import { MapPin, Clock, Calendar, X, Share2, Vote, Plus } from "lucide-react"
 import { BookCover } from "@/components/book-cover"
 import { BookDetailDialog } from "@/components/book-detail-dialog"
 import { CardActionBar } from "@/components/card-action-bar"
-import { DatePoll } from "@/components/date-poll"
+import { DatePoll, MAX_DATE_OPTIONS } from "@/components/date-poll"
 import type { DateOption, Meeting, SuggestedBook } from "@/lib/types"
 import { TimePicker } from "@/components/time-picker"
 
@@ -31,6 +31,8 @@ interface ScheduleTabProps {
   onDeleteMeeting: (meetingId: string) => void
   onUpdateMeeting: (meetingId: string, updates: Partial<Omit<Meeting, "id" | "rsvps" | "book">>) => void
   onToggleDateVote: (meetingId: string, optionId: string) => void
+  onAddDateOption: (meetingId: string, date: string) => void
+  onRemoveDateOption: (meetingId: string, optionId: string) => void
   onFinalizeDate: (meetingId: string, date: string) => void
   onReopenPoll: (meetingId: string) => void
   prefillBook?: SuggestedBook | null
@@ -45,6 +47,8 @@ export function ScheduleTab({
   onDeleteMeeting,
   onUpdateMeeting,
   onToggleDateVote,
+  onAddDateOption,
+  onRemoveDateOption,
   onFinalizeDate,
   onReopenPoll,
   prefillBook,
@@ -271,7 +275,7 @@ export function ScheduleTab({
 
               {dateMode === "poll" && !editingMeetingId ? (
                 <div className="space-y-2">
-                  <Label>Date options (pick 2&ndash;4, the gang votes on availability)</Label>
+                  <Label>Date options (pick 2&ndash;{MAX_DATE_OPTIONS}, the gang votes on availability)</Label>
                   {pollDates.map((date, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <Input
@@ -296,7 +300,7 @@ export function ScheduleTab({
                       )}
                     </div>
                   ))}
-                  {pollDates.length < 4 && (
+                  {pollDates.length < MAX_DATE_OPTIONS && (
                     <Button
                       type="button"
                       variant="outline"
@@ -394,6 +398,8 @@ export function ScheduleTab({
             onDelete={() => setMeetingToDelete(meeting.id)}
             onEdit={() => handleEditMeeting(meeting)}
             onToggleDateVote={(optionId) => onToggleDateVote(meeting.id, optionId)}
+            onAddDateOption={(date) => onAddDateOption(meeting.id, date)}
+            onRemoveDateOption={(optionId) => onRemoveDateOption(meeting.id, optionId)}
             onFinalizeDate={(date) => onFinalizeDate(meeting.id, date)}
           />
         ))
@@ -409,10 +415,12 @@ interface MeetingCardProps {
   onDelete: () => void
   onEdit: () => void
   onToggleDateVote: (optionId: string) => void
+  onAddDateOption: (date: string) => void
+  onRemoveDateOption: (optionId: string) => void
   onFinalizeDate: (date: string) => void
 }
 
-function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDateVote, onFinalizeDate }: MeetingCardProps) {
+function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDateVote, onAddDateOption, onRemoveDateOption, onFinalizeDate }: MeetingCardProps) {
   const [rsvpName, setRsvpName] = useState(userName)
   const [shareLabel, setShareLabel] = useState("Share")
   const [detailOpen, setDetailOpen] = useState(false)
@@ -564,6 +572,8 @@ function MeetingCard({ meeting, userName, onRSVP, onDelete, onEdit, onToggleDate
                   options={meeting.dateOptions!}
                   userName={userName}
                   onToggleVote={onToggleDateVote}
+                  onAddOption={onAddDateOption}
+                  onRemoveOption={onRemoveDateOption}
                   onFinalize={onFinalizeDate}
                 />
               </div>
