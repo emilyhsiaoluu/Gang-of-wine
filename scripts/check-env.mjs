@@ -2,6 +2,21 @@
 // loudly if Supabase env vars are missing, instead of silently shipping a
 // bundle with no database credentials — see the Jul 9-10 outage in
 // docs/RELIABILITY_PLAN.md.
+//
+// This runs as plain node, so unlike `next build` it does not read .env.local
+// on its own -- without this loader, `pnpm build` fails locally for everyone
+// with a message pointing at Vercel, which is the wrong place to look.
+import { existsSync, readFileSync } from "node:fs"
+
+if (existsSync(".env.local")) {
+  for (const line of readFileSync(".env.local", "utf8").split("\n")) {
+    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/)
+    if (match && !process.env[match[1]]) {
+      process.env[match[1]] = match[2].replace(/^["']|["']$/g, "")
+    }
+  }
+}
+
 const required = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]
 const missing = required.filter((key) => !process.env[key])
 

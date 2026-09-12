@@ -4,11 +4,15 @@
   "packageManager": "pnpm@10.33.0",
   "private": true,
   "scripts": {
+    "predev": "find . -name 'Icon?' -type f -delete 2>/dev/null || true",
     "dev": "next dev",
     "prebuild": "node scripts/check-env.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "backup": "node scripts/backup.mjs",
+    "test:local": "SMOKE_BASE_URL=http://localhost:3000 playwright test demo.spec.ts ux-lint.spec.ts",
     "test:smoke": "playwright test"
   },
   "dependencies": {

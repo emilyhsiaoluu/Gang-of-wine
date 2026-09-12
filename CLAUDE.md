@@ -1,133 +1,292 @@
-# Gang of Wine Moms Book Club — Claude Instructions
+# Gang of Wine Moms Book Club — the operating contract
 
-## Working with the owner
+Read this whole file before your first tool call. It is not background reading;
+it is the process you are required to follow. `DESIGN.md` is the visual system,
+`docs/BACKLOG.md` is the feature queue, `docs/RELIABILITY_PLAN.md` is history.
 
-The owner is **not an engineer** — she's a non-technical founder/product person. That means:
+---
 
-- **Be her CTO partner, not just a code executor.** Proactively flag technical debt, bad patterns, and UX problems she might not have thought to ask about. If you spot something worth fixing while doing another task, mention it.
-- **Explain tradeoffs in plain English**, not jargon. Skip acronyms unless you define them.
-- **Propose before implementing** on anything non-trivial. A quick "here's what I'd do and why" is better than silently going a direction she didn't expect.
-- **Push back on requests that would make the UX worse.** She'd rather hear "that would create a dead end, here's a better approach" than get exactly what she asked for if it's suboptimal.
+## The three promises
+
+Ten real women use this app on their phones. Every change you make is a change
+to something they are already using. Everything below exists to keep three
+promises:
+
+1. **Don't break production.** A broken deploy is not "a bug we'll fix" — it is
+   ten people who can't RSVP tonight.
+2. **Don't lose data.** There are no backups on Supabase's free tier and no
+   undo on a bad `delete`. Votes, RSVPs and suggestions are irreplaceable.
+3. **Don't add bloat.** Every feature you add is a feature that must keep
+   working forever. The best outcome for a feature request is often a smaller
+   change than the one requested, or none at all.
+
+If a request conflicts with one of these, say so before you build it.
+
+---
+
+## Who you're working with
+
+Emily is a product person, not an engineer. She can read plain English and make
+good calls; she cannot read a stack trace. That means:
+
+- **Be her engineering partner, not a code executor.** Have opinions. Say which
+  option you'd pick and why. "Both work, up to you" is a failure.
+- **Plain English, no jargon** unless you define it in the same sentence.
+- **Short.** She has explicitly asked for shorter answers. Give the decision,
+  not the survey. If she asks for shorter, the next version is actually
+  shorter — don't move the cut material into a notes section.
+- **Never make her the first tester.** You dogfood it. She approves it.
+- **Never ask her to do something you can do.** Only stop at things that need
+  her login, her card, or her judgment.
+
+### The required shape for any non-trivial request
+
+Before you write code for anything bigger than a typo fix, answer in exactly
+this shape — four lines, no preamble:
+
+```
+What you asked for:  <her request, in your words, so she can catch a misread>
+What it actually costs: <the real complexity, the thing that could break>
+What I'd do instead: <your recommendation — often smaller>
+Size: S / M / L
+```
+
+- **S** — one file, no database change, no new dependency.
+- **M** — several files or a new screen/surface, still no database change.
+- **L** — changes the *shape* of the data (new column, new kind of row, a field
+  that used to be required becoming optional).
+
+**Every L goes through the migration protocol below. No exceptions.**
+
+Then stop and wait for her yes. For an S you may proceed after stating it.
+
+---
+
+## The Loop — how a feature request gets built
+
+Run these five steps in order, every time. Say which step you're on.
+
+1. **Understand the real problem.** Write down the problem, not the solution she
+   proposed. ("Finding a date that works for 10 women is hard" is the problem;
+   "add a poll button" is one solution to it.)
+2. **Check whether it already exists.** Grep first. This app has features with
+   no entry point — machinery that works but has no button. Half of the backlog
+   is plumbing, not building. Report what you found before proposing anything.
+3. **Propose the smallest version** using the four-line shape above. Log it in
+   `docs/BACKLOG.md`.
+4. **Build it** on a `claude/*` branch, behind the design rules in `DESIGN.md`.
+5. **Prove it** — the Ship Gate below. You do not get to say "done" without
+   passing it and showing the evidence.
+
+---
+
+## The Ship Gate — required before you say a change is ready
+
+Run all five. Paste the results. "It should work" is not a result.
+
+```bash
+pnpm typecheck     # 1. TypeScript is clean
+pnpm build         # 2. It actually builds
+pnpm test:local    # 3. Smoke + UX lint pass against your local build
+```
+
+4. **Dogfood it yourself, in a browser, at 375px.** Not optional, not
+   "verified from the code." Concretely:
+
+   - Start the app: `preview_start` with name `gang-of-wine`, then
+     `resize_window` to the `mobile` preset (375x812).
+   - Go to `http://localhost:3000/?demo=1` — demo mode is in-memory sample
+     data and never touches any database, so you can click anything.
+   - **Tap through the flow you changed, end to end, including submitting.**
+     Then tap through the *other two tabs* to make sure you didn't break them.
+   - `read_console_messages` with `onlyErrors` — a clean console is part of
+     passing.
+   - Take a screenshot of the changed screen and put it in front of Emily with
+     `SendUserFile`. She is a visual approver; a description is not a
+     screenshot.
+
+5. **Report honestly.** What you changed, what you verified, and **what you did
+   not verify.** If you couldn't test something (a real-data path, a share
+   sheet, an iOS-only behavior), say that out loud rather than letting silence
+   imply it's covered.
+
+After merging to main, one more: `curl https://gang-of-wine.vercel.app/api/health`
+and confirm `"ok": true` before you end the session.
+
+---
+
+## Data safety — the rules that keep votes and RSVPs alive
+
+The 2026-07-10 outage is written up in `docs/RELIABILITY_PLAN.md`. These are the
+rules that came out of it plus the ones that protect the data itself.
+
+**Hard rules. Breaking one is an incident, not a style choice.**
+
+1. **Never write a Supabase `.delete()` or `.update()` without a filter.**
+   `supabase.from(table("votes")).delete()` with no `.eq()` clears the table.
+   Every destructive call must have an `.eq()` on the same line you write it.
+2. **Migrations are additive only.** Add columns. Never `drop column`, never
+   rename a column, never change a column's type. To retire a field: stop
+   writing it and leave it sitting there. Renaming is how old deploys start
+   reading columns that no longer exist.
+3. **Every migration is idempotent** — `add column if not exists` — and lives in
+   `sql/YYYY-MM-description.sql` so it's replayable.
+4. **Back up before any SQL against production:** `pnpm backup`. It writes a
+   timestamped JSON snapshot of all four tables to `backups/` (gitignored — it
+   contains real names). This is the only undo that exists.
+5. **Code before data.** If a change alters what the data can look like, the
+   code that *understands* the new shape must be live in production BEFORE any
+   new-shape row is created. Old prod code + new-shape data = everyone's app
+   crashes.
+6. **Destructive actions in the UI need an undo or a confirm** — see `DESIGN.md`.
+   Never both, never neither.
+
+### Migration protocol (every L-sized change)
+
+1. `pnpm backup` — snapshot production.
+2. Write the SQL file, additive and idempotent.
+3. Ship the *code* that tolerates both shapes (old rows missing the new field),
+   merge it, confirm `/api/health` is green.
+4. *Then* run the SQL in the Supabase dashboard.
+5. Confirm `/api/health` green again and tap through the affected flow.
+
+---
+
+## If production breaks — Emily's 60-second fix
+
+Tell her this, don't make her find it:
+
+1. Go to **vercel.com** → the **Gang-of-wine** project → **Deployments**.
+2. Find the last deployment from before the break (they're newest-first).
+3. Click the **⋯** menu on it → **Promote to Production**.
+4. The app is back in about 30 seconds. Nothing is lost — it just runs the
+   older code.
+
+Then tell her what broke and fix it properly on a branch.
+
+---
+
+## Anti-bloat rules
+
+- **No new dependency without asking first.** Every package is a thing that can
+  break at 11pm. `components/ui/` already has almost everything.
+- **No new top-level tab.** Three tabs (RSVP, Vote, Archive) is the whole app.
+  A fourth is a redesign, not a feature.
+- **When you add, look for something to delete.** Dead code, a duplicated
+  pattern, a stale doc.
+- **Prefer surfacing existing machinery over building new machinery.** See step
+  2 of the Loop.
+- **Don't write a doc when a comment will do.** This repo has enough markdown.
+
+---
 
 ## What this app is
 
-A mobile-first book club app for a small group of friends ("Gang of Wine Moms"). Members can suggest books, vote on what to read next, RSVP to meetings, and browse past picks. It's a real production app used by real people — changes land in production via Vercel.
+A mobile-first book club app for a group of friends. Members suggest books, vote
+on the next read, poll for a date that works, RSVP, and browse past picks. Real
+production app, real users, deployed on Vercel from `main`.
 
 ## Stack
 
-- **Next.js 16** (App Router, Turbopack)
-- **Supabase** (Postgres) — env vars `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- **shadcn/ui** + **Tailwind CSS** — `components/ui/` holds all primitives
-- **lucide-react** for icons
-- **Open Library API** (no key needed) — currently used for search, covers, descriptions, subjects, ratings
+- **Next.js 16** (App Router, Turbopack) · **React 19** · **TypeScript**
+- **Supabase** (Postgres) — client in `lib/supabase.ts`, all queries in `lib/data.ts`
+- **shadcn/ui** + **Tailwind v4** — primitives in `components/ui/`
+- **lucide-react** icons · **PostHog** analytics · **Playwright** smoke tests
+- **Open Library API** (no key) — search, covers, descriptions, subjects, ratings
   - Search: `https://openlibrary.org/search.json?title=X&author=Y&limit=N`
-  - Works (full description): `https://openlibrary.org/works/KEY.json`
+  - Work detail: `https://openlibrary.org/works/KEY.json`
   - Covers: `https://covers.openlibrary.org/b/id/ID-[S/M/L].jpg`
-  - We tried Google Books but it rate-limits (429) in production without an API key. Open Library works but has gaps (thin descriptions, noisy subjects). **We're open to switching to a better free book API** — just validate it doesn't require a paid key or rate-limit at low traffic before proposing it.
+  - Google Books was tried and rate-limits (429) in production without a key.
+    Open Library is thin in places. A better free API is welcome — verify it
+    needs no paid key and doesn't rate-limit at low traffic before proposing.
 
 ## Key files
 
 | File | Purpose |
 |------|---------|
-| `components/book-club-app.tsx` | Root client component; all state + Supabase calls live here |
-| `components/tabs/vote-tab.tsx` | Suggest + vote on books; fetches OL card data per suggestion |
-| `components/tabs/schedule-tab.tsx` | Next meeting RSVP + share card |
-| `components/tabs/archive-tab.tsx` | Past meetings archive |
-| `components/book-detail-dialog.tsx` | Popup with full description (fetched from OL Works endpoint) |
-| `components/book-cover.tsx` | Cover image with fallback gradient |
-| `lib/types.ts` | Shared TypeScript types |
-| `lib/supabase.ts` | Supabase client singleton |
-| `lib/data.ts` | Seed data (used when Supabase is unavailable) |
+| `components/book-club-app.tsx` | Root client component; all state + data calls |
+| `components/tabs/schedule-tab.tsx` | Meeting card, RSVP, the create/edit meeting form, date poll host |
+| `components/tabs/vote-tab.tsx` | Suggest + vote on books; fetches Open Library card data |
+| `components/tabs/archive-tab.tsx` | Past meetings |
+| `components/date-poll.tsx` | The availability poll UI on a meeting card |
+| `components/book-detail-dialog.tsx` | Full-description popup |
+| `components/card-action-bar.tsx` | The shared row of card actions |
+| `lib/data.ts` | **Every** Supabase read/write + the demo-mode mirror of each |
+| `lib/demo-data.ts` | Sample data behind `?demo=1` |
+| `lib/table.ts` | Table-name prefixing (staging vs production) |
+| `lib/types.ts` | Shared types |
+| `scripts/backup.mjs` | Production snapshot → `backups/` |
+| `scripts/data-lint.mjs` | Nightly data-integrity check |
+
+**Important:** if you add a data operation to `lib/data.ts`, you must add its
+demo-mode branch in the same function. A function that skips the demo branch
+will hit the real database during testing. That is how data gets lost.
+
+## Local setup
+
+`pnpm install`, then `pnpm dev` and open `http://localhost:3000/?demo=1`.
+
+⚠️ **Known issue (found 2026-09-11):** `.env.local` points at a Supabase project
+(`vfvwldamyfztzwerijqk`) that no longer exists — its hostname doesn't resolve.
+So local dev against *real* data shows the error banner. **Demo mode works fine
+and is the correct way to dogfood anyway.** To fix real-data local dev, Emily
+copies the **Preview**-scoped `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` and `NEXT_PUBLIC_TABLE_PREFIX` values from
+Vercel → Settings → Environment Variables into `.env.local` (staging, not
+production).
+
+⚠️ **Google Drive artifacts:** this repo lives in Google Drive, which scatters
+files literally named `Icon\r` everywhere. They break `git fetch` and the
+Turbopack dev cache. `pnpm dev` cleans them automatically (`predev`); if git
+itself breaks with `bad object refs/Icon?`, run:
+`find .git -name 'Icon?' -delete`
 
 ## Git + deploy workflow
 
-**Branch:** develop on the session's assigned `claude/*` branch. (Historically
-everything had to go through `claude/supabase-database-name-gg9h06` because the
-Preview env vars in Vercel were pinned to that one branch; the pin was removed
-on 2026-07-13, so any branch gets a working preview now.)
+- **Branch:** `claude/<short-description>` off the latest `main`. Never commit
+  to `main`.
+- Open a PR. CI runs typecheck + build + demo smoke on every PR — wait for it.
+- Wait for the Vercel preview to say **Ready**, then **paste the preview URL in
+  chat. Every push, every time**, even if you just shared it. It's in the Vercel
+  bot's PR comment.
+- Squash-merge. Then `curl .../api/health` and confirm `"ok": true`.
+- After a squash merge your branch has diverged; start the next one fresh from
+  `git fetch origin && git checkout -b claude/<next> origin/main`.
 
-**Every session:**
-1. After squash-merging a PR to main, the branch diverges. Fix with:
-   ```bash
-   git fetch origin main
-   git reset --hard origin/main
-   git cherry-pick <latest-commit-sha>
-   git push --force-with-lease origin <branch-name>
-   ```
-2. Open a draft PR, wait for Vercel to show **Ready**, then merge with squash.
-3. **Always paste the preview URL in chat after every push — every single time,
-   even if you just shared it.** Vercel derives it from the branch name:
-   `https://gang-of-wine-git-<branch-slug>-emilyhsiaoluu-5596s-projects.vercel.app`
-   (the exact URL appears in the Vercel bot comment on the PR).
+**Never dogfood on production.** Preview uses a separate staging database;
+demo mode uses no database at all.
 
-**Why:** The owner's friends use prod. Test on the preview URL, never dogfood on prod.
+## Environment variables
 
-## Database safety (learned from the 2026-07-10 outage)
-
-Preview deployments use a **separate staging Supabase project** (verified
-2026-07-13 via the preview bundle + health check), so previews cannot touch
-production data. Two hard rules still apply:
-
-1. **Code before data.** If a feature changes what the data can look like
-   (new column, nullable field, new "kind" of row), the code that understands
-   the new shape must be merged to production BEFORE any new-shape data is
-   created. Old prod code + new-shape data = prod crashes for everyone.
-2. **Test with demo mode, not real data.** `?demo=1` runs the app on
-   in-memory sample data and never touches Supabase. Use it for all UI
-   testing — and tell the owner to use it too when asking her to try things.
-
-## Environment variables (learned from the second 2026-07-10 outage)
-
-`NEXT_PUBLIC_*` vars are baked into the JS bundle **at build time**. Deleting
-one in Vercel doesn't break the running deployment — it breaks the NEXT
-deploy, silently. That's exactly how prod went down for ~15 hours on Jul 9–10:
-the Supabase vars vanished during staging setup, and the next merge shipped a
-bundle with no database credentials.
-
-Inventory (names + scopes only — values live in Vercel, never in the repo):
+`NEXT_PUBLIC_*` vars are baked into the JS bundle **at build time**. Deleting one
+in Vercel doesn't break the running site — it breaks the *next* deploy, silently.
+That is exactly how production went down for ~15 hours on Jul 9–10.
 
 | Variable | Scope | Purpose |
 |----------|-------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Production | Prod database URL |
-| `NEXT_PUBLIC_SUPABASE_URL` | Preview (all branches) | **Staging** database URL — a separate Supabase project from prod |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production | Prod public anon key |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Preview (all branches) | Staging public anon key |
+| `NEXT_PUBLIC_SUPABASE_URL` | Production | Production database |
+| `NEXT_PUBLIC_SUPABASE_URL` | Preview (all branches) | **Staging** database — separate project |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Production | Production anon key |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Preview (all branches) | Staging anon key |
 | `NEXT_PUBLIC_POSTHOG_KEY` | Production + Preview | Analytics |
 | `NEXT_PUBLIC_POSTHOG_HOST` | Production + Preview | Analytics |
-| `NEXT_PUBLIC_TABLE_PREFIX` | Preview (all branches) (`gow_`) | Staging table prefix — must NEVER be set on Production |
+| `NEXT_PUBLIC_TABLE_PREFIX` | Preview only (`gow_`) | Staging table prefix — **never** set on Production |
 
-The three Preview-scoped vars were originally pinned to the branch
-`claude/supabase-database-name-gg9h06`, which made preview builds on every
-other branch fail the `check-env.mjs` guard. The owner removed the branch
-pins on 2026-07-13 so all preview branches build.
+1. **Never delete a Vercel env var.** Edit or add.
+2. After any env change: redeploy, then check `/api/health` before walking away.
+3. A new env var goes in this table and in `.env.example` (name only, never a value).
 
-Hard rules:
+## Code patterns worth knowing
 
-1. **Never delete a Vercel env var.** Edit or add; deletion is how outage #2
-   happened. Any env change gets noted in the PR/chat.
-2. **After any env change or merge to main:** redeploy, then
-   `curl https://gang-of-wine.vercel.app/api/health` and confirm 200 before
-   ending the session.
-3. New env vars get added to this table and to `.env.example` (name only).
+**Null checks.** Open Library data arrives async. Use `!= null` (loose), not
+`!== null` — `undefined !== null` is `true` and will crash a render.
 
-See `docs/RELIABILITY_PLAN.md` for the monitoring/alerting/evals work order.
+**Dates.** Stored as `YYYY-MM-DD`. Always parse as
+`new Date(\`${dateStr}T00:00:00\`)` or the date shifts by a day in Pacific time.
+A meeting with no date yet (an open poll) stores `null` — every date code path
+must tolerate that.
 
-## Design + UX rules
-
-The owner wants Claude to be a co-designer, not just a code executor. Before implementing any UI change:
-
-- **Dogfood every UI change before presenting it.** Render the app at iPhone width (375px), actually tap through the changed flow (buttons, forms, toggles — including submitting), and look at the result visually. Catch broken buttons, cramped tap targets, and visual oddities before the owner does. Never declare a UI change done from code alone.
-- **Mobile-first always.** Assume an iPhone SE width (375px). Tap targets ≥ 44px.
-- **Call out UX gaps proactively.** If a request would create a confusing flow, tiny tap target, missing empty state, or broken edge case — say so and suggest the better version before writing code.
-- **Consistency matters.** All three tabs (Vote, Schedule, Archive) should feel like the same app. If a pattern exists on one tab, apply it to the others.
-- **Don't leave dead ends.** Every card/item needs a clear action. Empty states should explain what to do next.
-- **Prefer showing over hiding.** Surfacing key info inline (description snippet, genre chips, rating) is better than burying it one tap deeper.
-
-## Common patterns
-
-**Tap targets:** Tapping cover, title, author, or description on any card opens `BookDetailDialog`.
-
-**Cover URL upscaling:**
+**Cover upscaling.**
 ```ts
 function getHighResCoverUrl(url: string): string {
   if (url.includes("books.google.com")) {
@@ -137,12 +296,12 @@ function getHighResCoverUrl(url: string): string {
 }
 ```
 
-**Card data fetching (vote tab):** `fetchCardData(title, author)` hits OL search + Works endpoint and returns `{ description, subjects, rating }`. Results are cached in component state keyed by book ID, with a `useRef<Set<string>>` to prevent duplicate fetches.
-
-**Null checks:** OL data arrives asynchronously. Always use `!= null` (loose) not `!== null` (strict) when checking optional fields — `undefined !== null` is `true` in JS and will crash renders.
-
-**Date formatting:** Dates stored as `YYYY-MM-DD`; always parse with `new Date(\`${dateStr}T00:00:00\`)` to avoid timezone shifts.
+**Card data fetching (vote tab).** `fetchCardData(title, author)` hits Open
+Library search + the Works endpoint. Cached in component state by book id, with
+a `useRef<Set<string>>` guard against duplicate fetches.
 
 ## Tone
 
-The app is warm and fun — "wine moms book club" energy. Copy should be friendly, not corporate. The serif font (`font-serif`) is used for titles and headings to feel literary. Emojis are fine in UI copy (📚🍷) but not in code comments.
+Warm and fun — wine-night-with-your-smartest-friends. Friendly copy, never
+corporate. Serif (`font-serif`) for titles. Emoji are welcome in UI copy (📚🍷)
+and never in code comments.
