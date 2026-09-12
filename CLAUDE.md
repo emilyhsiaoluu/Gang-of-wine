@@ -105,6 +105,22 @@ pnpm test:local    # 3. Smoke + UX lint pass against your local build
      `SendUserFile`. She is a visual approver; a description is not a
      screenshot.
 
+**Two traps that cost real time on 2026-09-11:**
+
+- **`pnpm test:local` is the one to run, not a bare `pnpm exec playwright
+  test`.** The config's base URL used to default to production, so an ad-hoc
+  run silently drove the live app and then reported that local changes
+  "failed" when it had never looked at them. The default is localhost now, but
+  know which target you are on before believing a red result.
+- **Don't run `pnpm build` while the dev server is up.** It overwrites `.next`
+  underneath the running server, which then serves a mix of old and new. If
+  the browser is showing markup that isn't in the source, that's why: stop the
+  server, `rm -rf .next`, start it again.
+- And when a scripted edit says it patched a file, **assert the anchor
+  matched** — a replace that silently no-ops (an em dash where you typed a
+  hyphen) looks exactly like a passing edit and sends you hunting a bug that
+  was never there.
+
 5. **Report honestly.** What you changed, what you verified, and **what you did
    not verify.** If you couldn't test something (a real-data path, a share
    sheet, an iOS-only behavior), say that out loud rather than letting silence

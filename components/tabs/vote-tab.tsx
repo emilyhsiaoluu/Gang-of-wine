@@ -123,6 +123,7 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
   // presses -- and the group is adding it by hand instead. See docs/BACKLOG.md.
   const [manualMode, setManualMode] = useState(false)
   const [manualDescription, setManualDescription] = useState("")
+  const manualPanelRef = useRef<HTMLDivElement>(null)
   const [detailBook, setDetailBook] = useState<{ title: string; author: string; coverUrl?: string; description?: string } | null>(null)
   const [cardData, setCardData] = useState<Record<string, CardBookData>>({})
   const fetchedIdsRef = useRef<Set<string>>(new Set())
@@ -138,6 +139,13 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
       }
     })
   }, [suggestions])
+
+  // Bring the manual-entry panel into view when it opens. Its Add button sits
+  // below the fold on a phone otherwise, which is what made the whole thing
+  // read as "the button doesn't work" (Emily, 2026-09-11).
+  useEffect(() => {
+    if (manualMode) manualPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [manualMode])
 
   const resetSearchState = () => {
     setSearchResults([])
@@ -364,12 +372,14 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     onClick={() => setManualMode(true)}
                     disabled={!formData.title.trim() || !formData.author.trim()}
                   >
-                    {/* Deliberately not "Add <title> anyway" -- a real title
-                        like "Swan Song: Diana, My Sister" truncates to
-                        nonsense at 375px. The title is echoed back in the
-                        confirmation panel instead, where it can wrap. */}
+                    {/* Not "Add it by hand" -- that label promises the book is
+                        added, but this only opens a panel, so people tap it and
+                        believe nothing happened (Emily, 2026-09-11). It names
+                        the step it actually performs; the panel below carries
+                        the button that commits. And not "Add <title> anyway"
+                        either: a real title truncates to nonsense at 375px. */}
                     <PenLine className="mr-2 h-4 w-4" />
-                    Add it by hand
+                    Enter it by hand instead
                   </Button>
                   {(!formData.title.trim() || !formData.author.trim()) && (
                     <p className="text-xs text-muted-foreground">
@@ -380,7 +390,10 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
               )}
 
               {manualMode && (
-                <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-3 space-y-3">
+                <div
+                  ref={manualPanelRef}
+                  className="rounded-md border border-primary/30 bg-primary/5 px-3 py-3 space-y-3"
+                >
                   <p className="text-sm text-foreground">
                     {/* JSX drops the whitespace around a newline, so the space
                         after the author has to be explicit or it renders as
@@ -402,6 +415,19 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                       Nobody can look this one up either, so a sentence helps the gang.
                     </p>
                   </div>
+                  {/* The commit button lives in the panel, not only in the
+                      button stack below. On a phone that stack sits under the
+                      fold, so the panel appeared to be a dead end. */}
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="w-full h-12 text-base"
+                    onClick={handleManualAdd}
+                    disabled={isLoading || !formData.title.trim() || !formData.author.trim()}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Suggestion
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -458,6 +484,10 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
               )}
 
               <div className="flex flex-col gap-3 pt-2">
+                {/* In manual mode the panel above owns the primary action, so
+                    Search and a second Add Suggestion would be two competing
+                    buttons for one job. */}
+                {!manualMode && (
                 <Button
                   type="button"
                   variant="outline"
@@ -478,21 +508,19 @@ export function VoteTab({ suggestions, votes, userName, onVote, onScheduleMeetin
                     </>
                   )}
                 </Button>
+                )}
+                {!manualMode && (
                 <Button
                   type="button"
                   size="lg"
                   className="w-full h-12 text-base"
-                  onClick={manualMode ? handleManualAdd : handleConfirmAdd}
-                  disabled={
-                    isLoading ||
-                    (manualMode
-                      ? !formData.title.trim() || !formData.author.trim()
-                      : !selectedBook)
-                  }
+                  onClick={handleConfirmAdd}
+                  disabled={isLoading || !selectedBook}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add Suggestion
                 </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"

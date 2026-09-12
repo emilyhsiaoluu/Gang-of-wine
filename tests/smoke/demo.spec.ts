@@ -114,7 +114,7 @@ test("a book Open Library can't find can still be added by hand", async ({ page 
   await page.getByRole("button", { name: "Search" }).click()
   await page.getByText("No matches found").waitFor({ timeout: 20_000 })
 
-  await page.getByRole("button", { name: "Add it by hand" }).click()
+  await page.getByRole("button", { name: "Enter it by hand instead" }).click()
   await page.getByPlaceholder("Optional — why this one?").fill("Out soon, picked it early.")
   await page.getByRole("button", { name: "Add Suggestion" }).click()
 
@@ -138,11 +138,90 @@ test("a book can still be added by hand when Open Library is unreachable", async
   await page.getByRole("button", { name: "Search" }).click()
 
   await expect(page.getByText("Open Library is probably down")).toBeVisible({ timeout: 15_000 })
-  await page.getByRole("button", { name: "Add it by hand" }).click()
+  await page.getByRole("button", { name: "Enter it by hand instead" }).click()
   await page.getByPlaceholder("Optional — why this one?").fill("Added during an outage.")
   await page.getByRole("button", { name: "Add Suggestion" }).click()
 
   const card = page.locator('[data-slot="card"]', { hasText: "Swan Song" })
   await expect(card).toBeVisible()
   await expect(card.getByText("Added by hand")).toBeVisible()
+})
+
+// Emily, 2026-09-11: "the box is at the top, but the button is at the bottom,
+// so i have to scroll up to see it." A form that opens off-screen reads as a
+// button that did nothing. These assert the form is actually within the
+// viewport after each of the ways it can be opened.
+async function formIsOnScreen(page: import("@playwright/test").Page) {
+  return page.getByText("Schedule a Meeting").evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return r.top >= 0 && r.top < window.innerHeight
+  })
+}
+
+test("the meeting form opens in view when started from the button", async ({ page }) => {
+  await page.getByRole("tab", { name: "RSVP" }).click()
+  await page.getByRole("button", { name: "Schedule a meeting" }).click()
+  await expect(page.getByText("Schedule a Meeting")).toBeVisible()
+  await page.waitForTimeout(700) // smooth scroll
+  expect(await formIsOnScreen(page)).toBe(true)
+})
+
+test("the meeting form opens in view when editing a meeting from the top of the list", async ({ page }) => {
+  await page.getByRole("tab", { name: "RSVP" }).click()
+  const card = page.locator('[data-slot="card"]', { hasText: "Tomorrow, and Tomorrow, and Tomorrow" })
+  await card.getByRole("button", { name: /Emily's House/ }).click()
+  await expect(page.getByText("Edit Meeting")).toBeVisible()
+  await page.waitForTimeout(700)
+  const onScreen = await page.getByText("Edit Meeting").evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return r.top >= 0 && r.top < window.innerHeight
+  })
+  expect(onScreen).toBe(true)
+})
+
+test("the RSVP tab still leads with the meeting, not the schedule button", async ({ page }) => {
+  await page.getByRole("tab", { name: "RSVP" }).click()
+  const card = page.locator('[data-slot="card"]').first()
+  const button = page.getByRole("button", { name: "Schedule a meeting" })
+  const cardTop = (await card.boundingBox())?.y ?? 0
+  const buttonTop = (await button.boundingBox())?.y ?? 0
+  // The thing ten people open the app to do comes first.
+  expect(buttonTop).toBeGreaterThan(cardTop)
+})
+
+test("the manual-entry panel carries its own Add button, in view", async ({ page }) => {
+  // Emily reported "add it by hand doesn't work" (2026-09-11). The button only
+  // opened a panel whose commit button sat below the fold, so tapping it looked
+  // like nothing happened. The panel now owns the primary action.
+  await page.route("**://openlibrary.org/search.json**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ docs: [] }) }),
+  )
+  await page.getByText("Vote", { exact: true }).click()
+  await page.getByRole("button", { name: "Suggest a Book" }).click()
+  await page.getByPlaceholder("Enter book title").fill("A Book With No Record")
+  await page.getByPlaceholder("Enter author name").fill("Nobody At All")
+  await page.getByRole("button", { name: "Search" }).click()
+  // Wait for the empty-result state to render before reaching for the button
+  // inside it -- clicking straight through is flaky, since the button does not
+  // exist until React has re-rendered with the results.
+  await expect(page.getByText("No matches found")).toBeVisible({ timeout: 20_000 })
+  await page.getByRole("button", { name: "Enter it by hand instead" }).click()
+
+  // Exactly one Add Suggestion on screen, and it is inside the panel, in view.
+  const add = page.getByRole("button", { name: "Add Suggestion" })
+  await expect(add).toHaveCount(1)
+  await page.waitForTimeout(700) // smooth scroll
+  await expect(add).toBeInViewport()
+  // exact:true matters -- Playwright matches accessible names by substring by
+  // default, and "Never mind, let me search again" contains "search".
+  await expect(page.getByRole("button", { name: "Search", exact: true })).toHaveCount(0)
+
+  await add.click()
+  await expect(page.locator('[data-slot="card"]', { hasText: "A Book With No Record" })).toBeVisible()
+})
+
+test("the schedule form says it does not search", async ({ page }) => {
+  await page.getByRole("tab", { name: "RSVP" }).click()
+  await page.getByRole("button", { name: "Schedule a meeting" }).click()
+  await expect(page.getByText("this doesn't search")).toBeVisible()
 })

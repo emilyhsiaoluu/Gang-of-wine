@@ -14,7 +14,7 @@
     "backup": "node scripts/backup.mjs",
     "seed-staging": "node scripts/seed-staging.mjs",
     "test:local": "SMOKE_BASE_URL=http://localhost:3000 playwright test demo.spec.ts ux-lint.spec.ts",
-    "test:smoke": "playwright test"
+    "test:smoke": "SMOKE_BASE_URL=${SMOKE_BASE_URL:-https://gang-of-wine.vercel.app} playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
